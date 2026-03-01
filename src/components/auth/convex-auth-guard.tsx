@@ -9,22 +9,22 @@ import { type ReactNode, useEffect } from "react";
  * Prevents Convex queries from running before the Clerk token is passed.
  */
 export function ConvexAuthGuard({ children }: { children: ReactNode }) {
-  const { isLoaded, isAuthenticated } = useConvexAuth();
+  const { isLoading, isAuthenticated } = useConvexAuth();
   const pathname = usePathname();
   const router = useRouter();
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
 
   useEffect(() => {
-    if (isLoaded && !isAuthenticated && !isAuthPage) {
+    if (!isLoading && !isAuthenticated && !isAuthPage) {
       router.replace("/sign-in");
     }
-  }, [isLoaded, isAuthenticated, isAuthPage, router]);
+  }, [isLoading, isAuthenticated, isAuthPage, router]);
 
   if (isAuthPage) {
     return <>{children}</>;
   }
 
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[hsl(0_0%_4%)]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[hsl(263_90%_65%)] border-t-transparent" />
