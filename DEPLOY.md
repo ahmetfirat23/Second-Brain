@@ -24,7 +24,7 @@ git init
 git add .
 git commit -m "Initial commit"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/mergen.git
+git remote add origin https://github.com/YOUR_USERNAME/mergen-s.git
 git push -u origin main
 ```
 
@@ -62,6 +62,8 @@ In Vercel → your project → **Settings** → **Environment Variables**, add:
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` | Production |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/brain-dump` | Production |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/brain-dump` | Production |
+| `TMDB_API_KEY` | Your TMDB API key (for movie search) | Production |
+| `GROK_API_KEY` | Your Grok API key (for brain dump AI) | Production |
 
 ## 7. Deploy
 
@@ -83,3 +85,4 @@ Click **Deploy**. After each push, run `npx convex dev --once` locally to sync C
 - **"CLERK_JWT_ISSUER_DOMAIN not set"** — Add it in Convex Dashboard → Environment Variables (Dev)
 - **Clerk redirect errors** — Ensure your Vercel URL is in Clerk's allowed redirect URLs
 - **Convex functions fail** — Check `GROK_API_KEY` and `TMDB_API_KEY` are set in Convex dev env
+- **TMDB search 500 error** — Add `TMDB_API_KEY` in Vercel → Environment Variables

@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "../../../convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { differenceInDays, parseISO } from "date-fns";
 import { UserButton } from "@clerk/nextjs";
 import {
@@ -35,9 +35,11 @@ interface SidebarProps {
 
 export function Sidebar({ onCmdK }: SidebarProps) {
   const pathname = usePathname();
-  const dueCount = useQuery(api.knowledgeCards.getDueCount) ?? 0;
-  const deadlines = useQuery(api.deadlines.list) ?? [];
-  const overdueGoals = useQuery(api.goals.getOverdue) ?? [];
+  const { isAuthenticated } = useConvexAuth();
+  const skip = !isAuthenticated;
+  const dueCount = useQuery(api.knowledgeCards.getDueCount, skip ? "skip" : {}) ?? 0;
+  const deadlines = useQuery(api.deadlines.list, skip ? "skip" : {}) ?? [];
+  const overdueGoals = useQuery(api.goals.getOverdue, skip ? "skip" : {}) ?? [];
 
   const urgentCount = deadlines.filter((d) => {
     const days = differenceInDays(parseISO(d.deadline), new Date());
@@ -50,7 +52,7 @@ export function Sidebar({ onCmdK }: SidebarProps) {
         <div className="w-7 h-7 rounded-lg bg-[hsl(263_90%_65%)] flex items-center justify-center shrink-0">
           <Brain className="w-4 h-4 text-white" />
         </div>
-        <span className="hidden lg:block text-sm font-semibold text-white truncate">Mergen</span>
+        <span className="hidden lg:block text-sm font-semibold text-white truncate">Mergen, the Second Brain</span>
       </div>
 
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
