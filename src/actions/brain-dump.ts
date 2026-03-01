@@ -59,7 +59,7 @@ export async function tidyBrainDumpText(dumpId: string, content: string, title?:
   try {
     const convex = await getConvex();
     const chatCtx = await convex.query(api.chatContext.getSettings, {});
-    const provider = chatCtx?.aiProvider ?? "grok";
+    const provider = chatCtx?.aiProvider ?? "gpt";
     const model = chatCtx?.aiGptModel ?? "gpt-5-nano";
     if (provider === "gpt" && !process.env.OPENAI_API_KEY) return { success: false, error: "OPENAI_API_KEY not set in .env.local" };
     const { title: suggestedTitle, tidiedContent, usage } = await tidyText(content.trim(), title?.trim() || undefined, provider, model);
@@ -79,7 +79,7 @@ export async function fanOutDump(dumpId: string, content: string): Promise<TidyR
   try {
     const convex = await getConvex();
     const chatCtx = await convex.query(api.chatContext.getSettings, {});
-    const provider = chatCtx?.aiProvider ?? "grok";
+    const provider = chatCtx?.aiProvider ?? "gpt";
     const model = chatCtx?.aiGptModel ?? "gpt-5-nano";
     if (provider === "gpt" && !process.env.OPENAI_API_KEY) return { success: false, error: "OPENAI_API_KEY not set in .env.local" };
     const { parsed, usage } = await parseBrainDump(content, provider, model);

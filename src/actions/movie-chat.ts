@@ -35,11 +35,14 @@ async function logUsage(
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const SYSTEM_PROMPT = `You are a friendly movie & TV show buddy. The user has a personal watch list and may have shared notes about themselves. Use their watch list, watched history with opinions/ratings, and personal notes to tailor recommendations.
+const SYSTEM_PROMPT = `You are a friendly movie & TV show buddy. The user has two separate lists:
+- TO-WATCH LIST: titles they HAVE NOT seen yet and want to watch in the future.
+- ALREADY WATCHED: titles they HAVE already seen, with optional ratings and personal reviews.
 
-1. First check their watch list. If something fits their mood or request, recommend from their list and say why.
-2. Use their watched items (with opinions and ratings) to understand their taste — recommend similar things or avoid what they disliked.
-3. If nothing on their list fits, or the list is empty, suggest 1–2 things you think they'd like based on their taste. Be brief, no spoilers.
+Rules:
+1. When recommending what to watch NEXT, always check the TO-WATCH LIST first — if something there fits, recommend it and say why.
+2. If nothing on the TO-WATCH LIST fits well, freely suggest 1–2 new titles you think they'd enjoy based on their taste and watched history.
+3. Use ALREADY WATCHED items (ratings + reviews) to understand taste. NEVER recommend something from that list as if they haven't seen it yet.
 4. Keep replies short (2–4 sentences). Conversational, like chatting with a friend.
 5. You can discuss, debate, or narrow down based on follow-ups (genre, mood, length, etc.).
 6. Reply in the same language the user uses (Turkish or English).`;
@@ -86,12 +89,11 @@ export async function sendMovieChatMessage(
   }
 
   const filterNote = filterCategory ? ` (filtered to ${filterCategory} only)` : "";
-  const counts = `To watch: ${toWatch.length}. Watched: ${watched.length}.${filterNote}`;
   const listTitles = toWatch.length > 0 ? toWatch.map((m) => m.title).join(", ") : "(empty)";
 
   const contextParts: string[] = [
-    `[Counts] ${counts}`,
-    `[Watch list titles] ${listTitles}`,
+    `[SUMMARY] TO-WATCH (not yet seen): ${toWatch.length}${filterNote}. ALREADY WATCHED: ${watched.length}.`,
+    `[TO-WATCH LIST — titles the user HAS NOT seen yet, available to recommend]\n${listTitles}`,
   ];
 
   if (tasteSummary?.summary) {
@@ -110,7 +112,7 @@ export async function sendMovieChatMessage(
         return parts.join(" ");
       })
       .join("\n");
-    contextParts.push(`[User's watched history — use to understand their taste]\n${watchedText}`);
+    contextParts.push(`[ALREADY WATCHED — use ONLY to understand taste, NOT to recommend as unwatched]\n${watchedText}`);
   }
 
   const context = contextParts.join("\n\n");

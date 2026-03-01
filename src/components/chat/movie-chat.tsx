@@ -181,13 +181,13 @@ export function MovieChat() {
                           <button
                             key={p}
                             onClick={() => setAiPreferences({ aiProvider: p })}
-                            className={`flex-1 px-2 py-1 rounded text-xs font-medium capitalize ${(chatCtx?.aiProvider ?? "grok") === p ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)]"}`}
+                            className={`flex-1 px-2 py-1 rounded text-xs font-medium capitalize ${(chatCtx?.aiProvider ?? "gpt") === p ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)]"}`}
                           >
                             {p}
                           </button>
                         ))}
                       </div>
-                      {(chatCtx?.aiProvider ?? "grok") === "gpt" && (
+                      {(chatCtx?.aiProvider ?? "gpt") === "gpt" && (
                         <div className="flex gap-2 mb-2">
                           {(["gpt-5-nano", "gpt-5-mini"] as const).map((m) => (
                             <button

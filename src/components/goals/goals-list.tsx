@@ -4,7 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useQuery, useMutation } from "convex/react";
 import {
-  DndContext, DragEndEvent, KeyboardSensor, PointerSensor,
+  DndContext, DragEndEvent, KeyboardSensor, PointerSensor, TouchSensor,
   closestCenter, useSensor, useSensors,
 } from "@dnd-kit/core";
 import {
@@ -114,7 +114,7 @@ function GoalCard({ goal }: { goal: Goal }) {
     >
       {/* Drag handle */}
       <div {...attributes} {...listeners}
-        className="absolute left-2 top-1/2 -translate-y-1/2 text-[hsl(0_0%_68%)] hover:text-[hsl(0_0%_70%)] cursor-grab active:cursor-grabbing select-none"
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1 text-[hsl(0_0%_68%)] hover:text-[hsl(0_0%_70%)] cursor-grab active:cursor-grabbing select-none"
         style={{ touchAction: "none" }}>
         <GripVertical className="w-4 h-4" />
       </div>
@@ -321,6 +321,7 @@ export function GoalsList() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 

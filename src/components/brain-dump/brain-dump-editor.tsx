@@ -40,7 +40,7 @@ export function BrainDumpEditor() {
   const removeDump = useMutation(api.brainDumps.remove);
   const chatCtx = useQuery(api.chatContext.getSettings);
   const setAiPreferences = useMutation(api.chatContext.setAiPreferences);
-  const provider = chatCtx?.aiProvider ?? "grok";
+  const provider = chatCtx?.aiProvider ?? "gpt";
 
   function handleSave() {
     if (!body.trim()) return;

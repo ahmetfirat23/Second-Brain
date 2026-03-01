@@ -25,7 +25,7 @@ export const getSettings = query({
       autoIncludeEnabled: row?.autoIncludeEnabled ?? false,
       includeRatings: row?.includeRatings ?? true,
       useLimitMode: row?.useLimitMode ?? false,
-      aiProvider: row?.aiProvider ?? "grok",
+      aiProvider: row?.aiProvider ?? "gpt",
       aiGptModel: aiGptModel as "gpt-5-mini" | "gpt-5-nano",
     };
   },
