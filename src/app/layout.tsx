@@ -7,8 +7,8 @@ import { ClientShell } from "./client-shell";
 import { ConvexClientProvider } from "@/providers/convex-provider";
 
 export const metadata: Metadata = {
-  title: "Second Brain",
-  description: "Your local-first personal knowledge base",
+  title: "Mergen, the Second Brain",
+  description: "Your personal knowledge base — wisdom from the myth",
 };
 
 export default function RootLayout({

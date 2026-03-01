@@ -24,7 +24,7 @@ git init
 git add .
 git commit -m "Initial commit"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/second-brain.git
+git remote add origin https://github.com/YOUR_USERNAME/mergen.git
 git push -u origin main
 ```
 
@@ -55,7 +55,7 @@ In Vercel → your project → **Settings** → **Environment Variables**, add:
 
 | Variable | Value | Environment |
 |----------|-------|-------------|
-| `NEXT_PUBLIC_CONVEX_URL` | Your dev deployment URL (e.g. `https://hearty-canary-360.convex.cloud`) | Production |
+| `NEXT_PUBLIC_CONVEX_URL` | Your Convex deployment URL (from `.env.local` or Convex Dashboard) | Production |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key | Production |
 | `CLERK_SECRET_KEY` | Clerk secret key | Production |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` | Production |

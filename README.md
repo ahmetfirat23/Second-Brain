@@ -1,6 +1,6 @@
-# Second Brain
+# Mergen, the Second Brain
 
-A personal knowledge management app with AI-powered organization. Sign in to access your brain dumps, watch list, deadlines, vault, flashcards, and goals.
+A personal knowledge management app with AI-powered organization. Named after Mergen — the wisdom figure from Turkish myth. Sign in to access your brain dumps, watch list, deadlines, vault, flashcards, and goals.
 
 ## Setup
 

@@ -50,7 +50,7 @@ export function Sidebar({ onCmdK }: SidebarProps) {
         <div className="w-7 h-7 rounded-lg bg-[hsl(263_90%_65%)] flex items-center justify-center shrink-0">
           <Brain className="w-4 h-4 text-white" />
         </div>
-        <span className="hidden lg:block text-sm font-semibold text-white truncate">Second Brain</span>
+        <span className="hidden lg:block text-sm font-semibold text-white truncate">Mergen</span>
       </div>
 
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
