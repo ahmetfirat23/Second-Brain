@@ -4,11 +4,12 @@ import type { Metadata } from "next";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { ClientShell } from "./client-shell";
+import { ConvexAuthGuard } from "@/components/auth/convex-auth-guard";
 import { ConvexClientProvider } from "@/providers/convex-provider";
 
 export const metadata: Metadata = {
   title: "Mergen, the Second Brain",
-  description: "Your personal knowledge base — wisdom from the myth",
+  description: "Your personal knowledge base",
 };
 
 export default function RootLayout({
@@ -40,7 +41,9 @@ export default function RootLayout({
       <html lang="en" className="dark">
         <body className="bg-[hsl(0_0%_4%)] text-[hsl(0_0%_95%)] antialiased">
           <ConvexClientProvider>
-            <ClientShell>{children}</ClientShell>
+            <ConvexAuthGuard>
+              <ClientShell>{children}</ClientShell>
+            </ConvexAuthGuard>
           </ConvexClientProvider>
         </body>
       </html>
