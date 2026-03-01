@@ -98,7 +98,7 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-start gap-2 px-3 py-3 border-b border-[hsl(0_0%_11%)] last:border-0 transition-colors ${
+      className={`group flex items-start gap-2 px-3 py-3 border-b border-[hsl(0_0%_11%)] last:border-0 transition-colors select-none ${
         isUrgent ? "bg-red-950/20 hover:bg-red-950/30" : "hover:bg-[hsl(0_0%_11%)]"
       } ${isDragging ? "z-50 shadow-lg" : ""}`}
     >
@@ -106,7 +106,8 @@ function SortableRow({
       <button
         {...attributes}
         {...listeners}
-        className="mt-1 shrink-0 cursor-grab active:cursor-grabbing text-[hsl(0_0%_40%)] hover:text-[hsl(0_0%_60%)] touch-manipulation"
+        className="mt-1 shrink-0 cursor-grab active:cursor-grabbing text-[hsl(0_0%_40%)] hover:text-[hsl(0_0%_60%)] select-none"
+        style={{ touchAction: "none" }}
         tabIndex={-1}
       >
         <GripVertical className="w-3.5 h-3.5" />

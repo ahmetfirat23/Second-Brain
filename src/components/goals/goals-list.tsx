@@ -108,13 +108,14 @@ function GoalCard({ goal }: { goal: Goal }) {
   return (
     <div
       ref={setNodeRef} style={style}
-      className={`group relative bg-[hsl(0_0%_10%)] border rounded-xl transition-all ${
+      className={`group relative bg-[hsl(0_0%_10%)] border rounded-xl transition-all select-none ${
         overdue ? "border-red-800/60 shadow-[inset_3px_0_0_hsl(0_80%_40%/0.6)]" : "border-[hsl(0_0%_22%)] hover:border-[hsl(0_0%_17%)]"
       } ${isDragging ? "z-50 shadow-2xl" : ""}`}
     >
       {/* Drag handle */}
       <div {...attributes} {...listeners}
-        className="absolute left-2 top-1/2 -translate-y-1/2 text-[hsl(0_0%_68%)] hover:text-[hsl(0_0%_70%)] cursor-grab active:cursor-grabbing">
+        className="absolute left-2 top-1/2 -translate-y-1/2 text-[hsl(0_0%_68%)] hover:text-[hsl(0_0%_70%)] cursor-grab active:cursor-grabbing select-none"
+        style={{ touchAction: "none" }}>
         <GripVertical className="w-4 h-4" />
       </div>
 

@@ -240,6 +240,34 @@ export const removeBySourceDumpId = mutation({
   },
 });
 
+export const patchReviews = internalMutation({
+  args: {
+    items: v.array(v.object({
+      title: v.string(),
+      year: v.optional(v.string()),
+      watchedNotes: v.optional(v.string()),
+      userRating: v.optional(v.number()),
+      watchedAt: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, { items }) => {
+    const all = await ctx.db.query("mediaList").collect();
+    let patched = 0, skipped = 0;
+    for (const item of items) {
+      const norm = item.title.trim().toLowerCase();
+      const existing = all.find((e) => e.title.trim().toLowerCase() === norm);
+      if (!existing) { skipped++; continue; }
+      const patch: Record<string, unknown> = {};
+      if (item.watchedNotes?.trim() && !existing.watchedNotes?.trim()) patch.watchedNotes = item.watchedNotes;
+      if (item.userRating != null && existing.userRating == null) patch.userRating = item.userRating;
+      if (item.watchedAt && !existing.watchedAt) patch.watchedAt = item.watchedAt;
+      if (Object.keys(patch).length > 0) { await ctx.db.patch(existing._id, patch); patched++; }
+      else skipped++;
+    }
+    return { patched, skipped };
+  },
+});
+
 export const reorder = mutation({
   args: { orderedIds: v.array(v.id("mediaList")) },
   handler: async (ctx, { orderedIds }) => {

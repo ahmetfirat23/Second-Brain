@@ -70,7 +70,7 @@ function VaultRow({ item, dragHandleProps }: { item: VaultItem; dragHandleProps?
   const domain = (() => { try { return new URL(item.url).hostname; } catch { return item.url; } })();
 
   return (
-    <div className="group relative bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_22%)] rounded-xl hover:border-[hsl(0_0%_28%)] transition-all">
+    <div className="group relative bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_22%)] rounded-xl hover:border-[hsl(0_0%_28%)] transition-all select-none">
       {editing ? (
         <div className="p-4 space-y-2">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none" />
@@ -93,7 +93,8 @@ function VaultRow({ item, dragHandleProps }: { item: VaultItem; dragHandleProps?
           {dragHandleProps && (
             <button
               {...dragHandleProps}
-              className="shrink-0 cursor-grab active:cursor-grabbing text-[hsl(0_0%_35%)] hover:text-[hsl(0_0%_55%)] touch-manipulation"
+              className="shrink-0 cursor-grab active:cursor-grabbing text-[hsl(0_0%_35%)] hover:text-[hsl(0_0%_55%)] select-none"
+              style={{ touchAction: "none" }}
               tabIndex={-1}
             >
               <GripVertical className="w-3.5 h-3.5" />

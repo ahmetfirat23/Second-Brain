@@ -616,7 +616,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
       <div
         ref={setNodeRef} style={style}
         onClick={() => openModal("detail")}
-        className={`group relative aspect-[2/3] rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+        className={`group relative aspect-[2/3] rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 select-none ${
           isDragging
             ? "border-[hsl(0_0%_22%)] shadow-2xl z-50"
             : "border-[hsl(0_0%_22%)] hover:border-[hsl(0_0%_38%)] hover:shadow-lg"
@@ -666,7 +666,8 @@ export function MediaCard({ item }: { item: MediaItem }) {
 
         {/* Drag handle — always visible on mobile, hover-only on desktop */}
         <div {...attributes} {...listeners}
-          className="absolute top-1.5 left-1.5 opacity-40 lg:opacity-0 lg:group-hover:opacity-70 cursor-grab active:cursor-grabbing z-10 transition-opacity duration-150"
+          className="absolute top-1.5 left-1.5 opacity-40 lg:opacity-0 lg:group-hover:opacity-70 cursor-grab active:cursor-grabbing z-10 transition-opacity duration-150 select-none"
+          style={{ touchAction: "none" }}
           onClick={(e) => e.stopPropagation()}>
           <GripVertical className="w-4 h-4 text-white drop-shadow-md" />
         </div>
