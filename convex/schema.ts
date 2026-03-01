@@ -63,6 +63,7 @@ export default defineSchema({
       v.literal("Lecture"),
       v.literal("Other")
     ),
+    sortOrder: v.optional(v.number()),
   }),
 
   vault: defineTable({
@@ -70,6 +71,7 @@ export default defineSchema({
     sourceDumpId: v.optional(v.id("brainDumps")),
     url: v.string(),
     urgency: v.number(),
+    sortOrder: v.optional(v.number()),
   }),
 
   knowledgeCards: defineTable({

@@ -67,3 +67,11 @@ export const remove = mutation({
     await ctx.db.delete(id);
   },
 });
+
+export const reorder = mutation({
+  args: { orderedIds: v.array(v.id("dailyTodos")) },
+  handler: async (ctx, { orderedIds }) => {
+    await requireUserIdentity(ctx);
+    await Promise.all(orderedIds.map((id, i) => ctx.db.patch(id, { sortOrder: i })));
+  },
+});

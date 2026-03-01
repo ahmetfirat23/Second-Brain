@@ -24,7 +24,9 @@ export function MobileHeader({ onCmdK }: MobileHeaderProps) {
         >
           <Command className="w-3.5 h-3.5" />
         </button>
-        <UserButton afterSignOutUrl="/sign-in" appearance={{ elements: { avatarBox: "w-6 h-6" } }} />
+        <div className="w-6 h-6 shrink-0 overflow-hidden rounded-full">
+          <UserButton afterSignOutUrl="/sign-in" appearance={{ elements: { avatarBox: "w-6 h-6", userButtonTrigger: "w-6 h-6 p-0" } }} />
+        </div>
       </div>
     </header>
   );

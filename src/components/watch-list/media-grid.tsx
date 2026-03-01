@@ -191,6 +191,10 @@ export function MediaGrid() {
   const toWatch = sortItems(filterByCategory(rawToWatch), toWatchSort, false);
   const watched = sortItems(filterByCategory(rawWatched), watchedSort, true);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("watch-list-filter", { detail: { category: filterCategory } }));
+  }, [filterCategory]);
+
   const SORT_OPTS = [
     { key: "date" as const, label: "Date" },
     { key: "alpha" as const, label: "A-Z" },

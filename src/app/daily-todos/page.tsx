@@ -4,8 +4,17 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { Check, ListTodo, Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Check, GripVertical, ListTodo, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import {
+  DndContext, DragEndEvent, KeyboardSensor, PointerSensor,
+  closestCenter, useSensor, useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const URGENCY_OPTIONS = [
   { value: 1, label: "1", color: "bg-zinc-700/50 text-zinc-400" },
@@ -15,22 +24,25 @@ const URGENCY_OPTIONS = [
   { value: 5, label: "5", color: "bg-red-900/40 text-red-400" },
 ] as const;
 
-function getToday() {
-  return format(new Date(), "yyyy-MM-dd");
-}
-
 export default function DailyTodosPage() {
-  const today = getToday();
+  const [today, setToday] = useState("");
+  useEffect(() => { setToday(format(new Date(), "yyyy-MM-dd")); }, []);
   const items = useQuery(api.dailyTodos.listForDate, { date: today }) ?? [];
   const createTodo = useMutation(api.dailyTodos.create);
   const toggleDone = useMutation(api.dailyTodos.toggleDone);
   const updateTodo = useMutation(api.dailyTodos.update);
   const removeTodo = useMutation(api.dailyTodos.remove);
+  const reorderTodos = useMutation(api.dailyTodos.reorder);
 
   const [newText, setNewText] = useState("");
   const [newUrgency, setNewUrgency] = useState(3);
   const [filterUrgency, setFilterUrgency] = useState<number | "all">("all");
   const [isPending, startTransition] = useTransition();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
   const filtered = filterUrgency === "all" ? sorted : sorted.filter((i) => i.urgency === filterUrgency);
@@ -45,6 +57,16 @@ export default function DailyTodosPage() {
     });
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const pendingIds = pending.map((i) => i._id);
+    const oldIdx = pendingIds.indexOf(active.id as Id<"dailyTodos">);
+    const newIdx = pendingIds.indexOf(over.id as Id<"dailyTodos">);
+    const reordered = arrayMove(pending, oldIdx, newIdx);
+    reorderTodos({ orderedIds: reordered.map((i) => i._id) });
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-8">
       <div className="mb-4 sm:mb-6">
@@ -55,7 +77,7 @@ export default function DailyTodosPage() {
           <div className="min-w-0">
             <h1 className="text-base sm:text-xl font-semibold text-white truncate">Daily Todos</h1>
             <p className="text-[10px] sm:text-xs text-[hsl(0_0%_68%)] truncate">
-              {format(new Date(), "EEE, MMM d")} — midnight reset
+              {today ? format(new Date(today + "T12:00:00"), "EEE, MMM d") : ""} — midnight reset
             </p>
           </div>
         </div>
@@ -114,16 +136,20 @@ export default function DailyTodosPage() {
           </div>
         ) : (
           <div className="rounded-xl border border-[hsl(0_0%_34%)] bg-[hsl(0_0%_11%)] overflow-hidden">
-            {pending.map((item) => (
-              <TodoRow
-                key={item._id}
-                item={item}
-                onToggle={() => toggleDone({ id: item._id })}
-                onUpdate={(text, urgency) => updateTodo({ id: item._id, text, urgency })}
-                onRemove={() => removeTodo({ id: item._id })}
-                urgencyOptions={URGENCY_OPTIONS}
-              />
-            ))}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={pending.map((i) => i._id)} strategy={verticalListSortingStrategy}>
+                {pending.map((item) => (
+                  <SortableTodoRow
+                    key={item._id}
+                    item={item}
+                    onToggle={() => toggleDone({ id: item._id })}
+                    onUpdate={(text, urgency) => updateTodo({ id: item._id, text, urgency })}
+                    onRemove={() => removeTodo({ id: item._id })}
+                    urgencyOptions={URGENCY_OPTIONS}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
             {done.length > 0 && (
               <>
                 <div className="h-px bg-[hsl(0_0%_12%)]" />
@@ -147,6 +173,34 @@ export default function DailyTodosPage() {
   );
 }
 
+type TodoItem = { _id: Id<"dailyTodos">; text: string; urgency: number; done: boolean; sortOrder: number };
+
+function SortableTodoRow(props: {
+  item: TodoItem;
+  onToggle: () => void;
+  onUpdate: (text: string, urgency: number) => void;
+  onRemove: () => void;
+  urgencyOptions: typeof URGENCY_OPTIONS;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.item._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className={isDragging ? "z-50 shadow-lg" : ""}>
+      <TodoRow
+        {...props}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  );
+}
+
 function TodoRow({
   item,
   done,
@@ -154,13 +208,15 @@ function TodoRow({
   onUpdate,
   onRemove,
   urgencyOptions,
+  dragHandleProps,
 }: {
-  item: { _id: Id<"dailyTodos">; text: string; urgency: number };
+  item: TodoItem;
   done?: boolean;
   onToggle: () => void;
   onUpdate: (text: string, urgency: number) => void;
   onRemove: () => void;
   urgencyOptions: typeof URGENCY_OPTIONS;
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
 }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(item.text);
@@ -186,15 +242,27 @@ function TodoRow({
         done ? "opacity-60" : ""
       }`}
     >
+      {dragHandleProps && (
+        <button
+          {...dragHandleProps}
+          className="shrink-0 cursor-grab active:cursor-grabbing text-[hsl(0_0%_35%)] hover:text-[hsl(0_0%_55%)] touch-manipulation"
+          tabIndex={-1}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      )}
       <button
         onClick={onToggle}
-        className={`shrink-0 w-11 h-11 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-colors touch-manipulation ${
+        className="shrink-0 p-2.5 -m-1.5 flex items-center justify-center touch-manipulation"
+        aria-label={done ? "Mark undone" : "Mark done"}
+      >
+        <span className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
           done
             ? "bg-teal-600 border-teal-500 text-white"
-            : "border-[hsl(0_0%_30%)] hover:border-teal-500/50 active:border-teal-500/50 text-transparent hover:text-teal-400"
-        }`}
-      >
-        {done && <Check className="w-4 h-4 sm:w-3 sm:h-3" />}
+            : "border-[hsl(0_0%_35%)] hover:border-teal-500 active:border-teal-500 text-transparent"
+        }`}>
+          {done && <Check className="w-3 h-3" />}
+        </span>
       </button>
 
       {editing ? (
@@ -216,9 +284,7 @@ function TodoRow({
               className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white outline-none [color-scheme:dark]"
             >
               {urgencyOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.value}
-                </option>
+                <option key={o.value} value={o.value}>{o.value}</option>
               ))}
             </select>
             <button

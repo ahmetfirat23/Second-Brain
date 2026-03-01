@@ -11,21 +11,22 @@ const WELCOME = "Ne izleyelim? Listene bakıp önerebilirim, ya da listede uygun
 const CHAT_SIZES = { normal: { w: 340, h: 420 }, large: { w: 500, h: 680 } } as const;
 const STORAGE_KEY = "movie-chat-history";
 
-function loadStoredMessages(): ChatMessage[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as ChatMessage[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 export function MovieChat() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages());
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  const [watchFilterCategory, setWatchFilterCategory] = useState<string>("all");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatMessage[];
+        if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed);
+      }
+    } catch { /* ignore */ }
+    setHydrated(true);
+  }, []);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const [showSettings, setShowSettings] = useState(false);
@@ -46,6 +47,14 @@ export function MovieChat() {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [messages]);
+
+  useEffect(() => {
+    function onFilter(e: CustomEvent<{ category: string }>) {
+      setWatchFilterCategory(e.detail.category ?? "all");
+    }
+    window.addEventListener("watch-list-filter", onFilter as EventListener);
+    return () => window.removeEventListener("watch-list-filter", onFilter as EventListener);
+  }, []);
 
   useEffect(() => {
     function onInsert(e: CustomEvent<{ text: string }>) {
@@ -85,7 +94,7 @@ export function MovieChat() {
 
     startTransition(async () => {
       const history = [...messages];  // server action appends the current message itself
-      const { content, error } = await sendMovieChatMessage(text, history);
+      const { content, error } = await sendMovieChatMessage(text, history, watchFilterCategory !== "all" ? watchFilterCategory : undefined);
       if (error) {
         setMessages((m) => [...m, { role: "assistant", content: `Hata: ${error}` }]);
       } else if (content) {
@@ -128,9 +137,14 @@ export function MovieChat() {
           }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[hsl(0_0%_22%)] bg-[hsl(0_0%_13%)]">
-            <span className="text-sm font-medium text-white flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-[hsl(263_70%_70%)]" />
-              Ne izleyelim?
+            <span className="text-sm font-medium text-white flex items-center gap-2 min-w-0">
+              <MessageCircle className="w-4 h-4 text-[hsl(263_70%_70%)] shrink-0" />
+              <span className="truncate">Ne izleyelim?</span>
+              {watchFilterCategory !== "all" && (
+                <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-violet-900/40 text-violet-300 border border-violet-700/40">
+                  {watchFilterCategory}
+                </span>
+              )}
             </span>
             <div className="flex items-center gap-1">
               {messages.length > 0 && (

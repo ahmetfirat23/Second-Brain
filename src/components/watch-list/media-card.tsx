@@ -388,30 +388,37 @@ function ItemModal({
             </div>
 
             {/* Footer actions */}
-            <div className="flex items-center gap-2 px-4 py-3 border-t border-[hsl(0_0%_20%)]">
+            <div className="flex items-center gap-1.5 px-3 py-3 border-t border-[hsl(0_0%_20%)]">
               <button
                 onClick={() => setView("watched")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                title={isWatched ? "Edit watched" : "Mark watched"}
+                className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs transition-colors ${
                   isWatched
                     ? "bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-800/40"
                     : "bg-[hsl(0_0%_14%)] hover:bg-emerald-900/30 text-[hsl(0_0%_68%)] hover:text-emerald-400"
                 }`}>
-                <Eye className="w-3 h-3" />
-                {isWatched ? "Edit watched" : "Mark watched"}
+                <Eye className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{isWatched ? "Edit watched" : "Mark watched"}</span>
               </button>
               <button
                 onClick={() => setView("edit")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-white text-xs transition-colors">
-                <Pencil className="w-3 h-3" /> Edit
+                title="Edit"
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-white text-xs transition-colors">
+                <Pencil className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Edit</span>
               </button>
               <button onClick={sendToChat}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-violet-900/40 text-[hsl(0_0%_68%)] hover:text-violet-300 text-xs transition-colors">
-                <Send className="w-3 h-3" /> Chat
+                title="Send to chat"
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-violet-900/40 text-[hsl(0_0%_68%)] hover:text-violet-300 text-xs transition-colors">
+                <Send className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Chat</span>
               </button>
               <button
                 onClick={() => { onDelete(); onClose(); }}
-                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-red-900/40 text-[hsl(0_0%_68%)] hover:text-red-400 text-xs transition-colors">
-                <Trash2 className="w-3 h-3" /> Delete
+                title="Delete"
+                className="ml-auto flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-red-900/40 text-[hsl(0_0%_68%)] hover:text-red-400 text-xs transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Delete</span>
               </button>
             </div>
           </>
@@ -624,51 +631,30 @@ export function MediaCard({ item }: { item: MediaItem }) {
           </div>
         )}
 
-        {/* Base gradient — deeper on hover to cover more content */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent group-hover:via-black/40 pointer-events-none transition-all duration-300" />
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
 
-        {/* Bottom info */}
-        <div className="absolute bottom-0 left-0 right-0 p-2.5 pointer-events-none">
-          {/* Title */}
-          <p className="text-[11px] font-semibold text-white leading-tight mb-0.5 line-clamp-2 drop-shadow">{item.title}</p>
+        {/* Bottom info — compact 2-row layout */}
+        <div className="absolute bottom-0 left-0 right-0 px-2 py-2 pointer-events-none">
+          {/* Row 1: Title */}
+          <p className="text-[11px] font-semibold text-white leading-tight mb-1 line-clamp-2 drop-shadow-md">{item.title}</p>
 
-          {/* Genre / director */}
-          {(genreText || item.director) && (
-            <p className="text-[9px] text-white/50 mb-1 truncate">
-              {[genreText, item.director ? `dir. ${item.director}` : null].filter(Boolean).join("  ·  ")}
-            </p>
-          )}
-
-          {/* Badges row: category, watched, runtime */}
-          <div className="flex items-center gap-1 mb-0.5">
+          {/* Row 2: badges + ratings all on one line */}
+          <div className="flex items-center gap-1 flex-wrap">
             <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border ${catColor}`}>{item.category}</span>
-            {isWatched && (
-              <span className="text-[9px] font-semibold text-emerald-300 bg-emerald-900/60 border border-emerald-700/60 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                <Eye className="w-2 h-2" /> Seen
+            {item.voteAverage && item.voteAverage > 0 && (
+              <span className="flex items-center gap-0.5 text-[9px] text-yellow-400 ml-auto">
+                <Star className="w-2.5 h-2.5 fill-yellow-400" />{item.voteAverage.toFixed(1)}
               </span>
             )}
-            {runtimeStr && <span className="text-[9px] text-white/55">{runtimeStr}</span>}
-            {item.notes && <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70 ml-auto" title="Has notes" />}
-            {isWatched && item.watchedNotes && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" title="Has review" />}
+            {displayRating !== undefined && displayRating > 0 && (
+              <span className="flex items-center gap-0.5 text-[9px] text-emerald-400 font-semibold">
+                <Star className="w-2.5 h-2.5 fill-emerald-400" />{displayRating}
+              </span>
+            )}
           </div>
 
-          {/* Ratings row: TMDB and user shown together */}
-          {((item.voteAverage && item.voteAverage > 0) || (displayRating !== undefined && displayRating > 0)) && (
-            <div className="flex items-center gap-2 mb-0.5">
-              {item.voteAverage && item.voteAverage > 0 && (
-                <span className="flex items-center gap-0.5 text-[9px] text-yellow-400">
-                  <Star className="w-2.5 h-2.5 fill-yellow-400" />{item.voteAverage.toFixed(1)}
-                </span>
-              )}
-              {displayRating !== undefined && displayRating > 0 && (
-                <span className="flex items-center gap-0.5 text-[9px] text-emerald-400 font-semibold">
-                  <Star className="w-2.5 h-2.5 fill-emerald-400" />{displayRating}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Overview — expands below stars on hover, takes no space when hidden */}
+          {/* Overview — expands on hover */}
           {item.overview && (
             <div className="max-h-0 overflow-hidden group-hover:max-h-20 transition-[max-height] duration-300">
               <p className="text-[9px] text-white/75 leading-relaxed line-clamp-3 pt-1">
@@ -685,8 +671,8 @@ export function MediaCard({ item }: { item: MediaItem }) {
           <GripVertical className="w-4 h-4 text-white drop-shadow-md" />
         </div>
 
-        {/* Quick actions */}
-        <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10"
+        {/* Quick actions — desktop hover only */}
+        <div className="absolute top-1.5 right-1.5 hidden lg:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10"
           onClick={(e) => e.stopPropagation()}>
           <button
             onClick={sendToChat}

@@ -171,7 +171,7 @@ export const tidyText = action({
   handler: async (ctx, { content, title }): Promise<{ title: string; tidiedContent: string }> => {
     await requireUserIdentity(ctx);
     const settings = await ctx.runQuery(api.chatContext.getSettings, {});
-    const provider = settings.aiProvider ?? "grok";
+    const provider = settings.aiProvider ?? "gpt" // Default: "gpt" — change to "grok" to revert;
     const model = settings.aiGptModel ?? "gpt-5-nano";
     const userContent = title ? `Title: ${title}\n\n${content}` : content;
 
@@ -214,7 +214,7 @@ export const fanOutDump = action({
   }> => {
     await requireUserIdentity(ctx);
     const settings = await ctx.runQuery(api.chatContext.getSettings, {});
-    const provider = settings.aiProvider ?? "grok";
+    const provider = settings.aiProvider ?? "gpt" // Default: "gpt" — change to "grok" to revert;
     const model = settings.aiGptModel ?? "gpt-5-nano";
 
     let raw: string;
@@ -363,7 +363,7 @@ export const generateTasteSummary = action({
     const userContent = `[Watched items]\n${watchedText}\n\n[Personal notes]\n${dumpsText}`;
     try {
       const settings = await ctx.runQuery(api.chatContext.getSettings, {});
-      const provider = settings.aiProvider ?? "grok";
+      const provider = settings.aiProvider ?? "gpt" // Default: "gpt" — change to "grok" to revert;
       const model = settings.aiGptModel ?? "gpt-5-nano";
 
       let raw: string;

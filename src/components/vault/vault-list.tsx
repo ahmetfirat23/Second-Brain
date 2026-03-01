@@ -3,8 +3,17 @@
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useQuery, useMutation } from "convex/react";
-import { ExternalLink, Pencil, Plus, Trash2, X, Check, ClipboardList } from "lucide-react";
+import { ExternalLink, GripVertical, Pencil, Plus, Trash2, X, Check, ClipboardList } from "lucide-react";
 import { useState, useTransition } from "react";
+import {
+  DndContext, DragEndEvent, KeyboardSensor, PointerSensor,
+  closestCenter, useSensor, useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const URGENCY_COLORS = ["", "bg-zinc-700 text-zinc-300", "bg-sky-900/40 text-sky-400", "bg-amber-900/40 text-amber-400", "bg-orange-900/40 text-orange-400", "bg-red-900/40 text-red-400"];
 
@@ -19,9 +28,26 @@ function UrgencyDot({ urgency }: { urgency: number }) {
   );
 }
 
-type VaultItem = { _id: Id<"vault">; title: string; url: string; urgency: number };
+type VaultItem = { _id: Id<"vault">; title: string; url: string; urgency: number; sortOrder?: number };
 
-function VaultRow({ item }: { item: VaultItem }) {
+function SortableVaultRow({ item }: { item: VaultItem }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className={isDragging ? "z-50 shadow-lg" : ""}>
+      <VaultRow item={item} dragHandleProps={{ ...attributes, ...listeners }} />
+    </div>
+  );
+}
+
+function VaultRow({ item, dragHandleProps }: { item: VaultItem; dragHandleProps?: React.HTMLAttributes<HTMLButtonElement> }) {
   const updateItem = useMutation(api.vault.update);
   const removeItem = useMutation(api.vault.remove);
   const [editing, setEditing] = useState(false);
@@ -44,9 +70,9 @@ function VaultRow({ item }: { item: VaultItem }) {
   const domain = (() => { try { return new URL(item.url).hostname; } catch { return item.url; } })();
 
   return (
-    <div className="group relative bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_22%)] rounded-xl p-4 hover:border-[hsl(0_0%_28%)] transition-all">
+    <div className="group relative bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_22%)] rounded-xl hover:border-[hsl(0_0%_28%)] transition-all">
       {editing ? (
-        <div className="space-y-2">
+        <div className="p-4 space-y-2">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none" />
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none" />
           <div className="flex items-center gap-3">
@@ -62,22 +88,34 @@ function VaultRow({ item }: { item: VaultItem }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-2 p-3 pr-4">
+          {/* Drag handle */}
+          {dragHandleProps && (
+            <button
+              {...dragHandleProps}
+              className="shrink-0 cursor-grab active:cursor-grabbing text-[hsl(0_0%_35%)] hover:text-[hsl(0_0%_55%)] touch-manipulation"
+              tabIndex={-1}
+            >
+              <GripVertical className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {/* Main content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-0.5">
               <a href={item.url} target="_blank" rel="noopener noreferrer"
-                className="text-sm font-medium text-white hover:text-[hsl(263_70%_75%)] transition-colors leading-snug truncate flex-1">
+                className="text-sm font-medium text-white hover:text-[hsl(263_70%_75%)] transition-colors leading-snug truncate flex-1 min-w-0">
                 {item.title}
               </a>
-              <ExternalLink className="w-3.5 h-3.5 text-[hsl(0_0%_64%)] shrink-0 mt-0.5" />
+              <ExternalLink className="w-3.5 h-3.5 text-[hsl(0_0%_64%)] shrink-0" />
             </div>
-            <p className="text-xs text-[hsl(0_0%_64%)] truncate">{domain}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-[hsl(0_0%_64%)] truncate flex-1 min-w-0">{domain}</p>
+              <UrgencyDot urgency={item.urgency} />
+              <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${URGENCY_COLORS[item.urgency]}`}>U{item.urgency}</span>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <UrgencyDot urgency={item.urgency} />
-            <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${URGENCY_COLORS[item.urgency]}`}>U{item.urgency}</span>
-          </div>
-          <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Action buttons — always visible, no absolute positioning */}
+          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
             <button onClick={() => setEditing(true)} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_75%)] hover:text-white"><Pencil className="w-3.5 h-3.5" /></button>
             <button onClick={() => { if (confirm(`Delete "${item.title}"?`)) removeItem({ id: item._id }); }} className="p-1.5 rounded-md hover:bg-red-900/40 text-[hsl(0_0%_75%)] hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
@@ -91,6 +129,7 @@ export function VaultList() {
   const items = useQuery(api.vault.list) ?? [];
   const createItem = useMutation(api.vault.create);
   const bulkCreate = useMutation(api.vault.bulkCreate);
+  const reorderItems = useMutation(api.vault.reorder);
 
   const [showAdd, setShowAdd] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
@@ -99,6 +138,11 @@ export function VaultList() {
   const [newUrgency, setNewUrgency] = useState(3);
   const [bulkText, setBulkText] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   function handleAdd() {
     if (!newTitle.trim() || !newUrl.trim()) return;
@@ -122,6 +166,16 @@ export function VaultList() {
       await bulkCreate({ items: parsed });
       setBulkText(""); setShowBulk(false);
     });
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = items.map((i) => i._id);
+    const oldIdx = ids.indexOf(active.id as Id<"vault">);
+    const newIdx = ids.indexOf(over.id as Id<"vault">);
+    const reordered = arrayMove(items, oldIdx, newIdx);
+    reorderItems({ orderedIds: reordered.map((i) => i._id) });
   }
 
   return (
@@ -178,7 +232,15 @@ export function VaultList() {
       {items.length === 0 && !showAdd && !showBulk ? (
         <div className="text-center py-20 text-[hsl(0_0%_68%)]"><p className="text-sm">No links yet. Add one above or paste a brain dump with URLs.</p></div>
       ) : (
-        <div className="space-y-2">{items.map((item) => <VaultRow key={item._id} item={item} />)}</div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map((i) => i._id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {items.map((item) => (
+                <SortableVaultRow key={item._id} item={item} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

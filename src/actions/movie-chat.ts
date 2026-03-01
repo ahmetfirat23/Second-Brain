@@ -46,7 +46,8 @@ const SYSTEM_PROMPT = `You are a friendly movie & TV show buddy. The user has a 
 
 export async function sendMovieChatMessage(
   userMessage: string,
-  history: ChatMessage[]
+  history: ChatMessage[],
+  filterCategory?: string
 ): Promise<{ content: string; error?: string }> {
   const convex = await getConvex();
   const [watchList, tasteSummary, chatCtx] = await Promise.all([
@@ -55,7 +56,7 @@ export async function sendMovieChatMessage(
     convex.query(api.chatContext.getSettings, {}),
   ]);
 
-  const provider = chatCtx?.aiProvider ?? "grok";
+  const provider = chatCtx?.aiProvider ?? "gpt"; // Default: "gpt" — change to "grok" to revert
   const model = chatCtx?.aiGptModel ?? "gpt-5-nano";
 
   if (provider === "gpt") {
@@ -64,8 +65,12 @@ export async function sendMovieChatMessage(
     if (!process.env.GROK_API_KEY) return { content: "", error: "GROK_API_KEY is not set in .env.local" };
   }
 
-  const toWatch = watchList.filter((m) => !m.watchedAt);
-  const watched = watchList.filter((m) => !!m.watchedAt);
+  const filteredList = filterCategory
+    ? watchList.filter((m) => m.category === filterCategory)
+    : watchList;
+
+  const toWatch = filteredList.filter((m) => !m.watchedAt);
+  const watched = filteredList.filter((m) => !!m.watchedAt);
   const autoIncludeEnabled = chatCtx?.autoIncludeEnabled ?? false;
   const includeRatings = chatCtx?.includeRatings ?? true;
   const useLimitMode = chatCtx?.useLimitMode ?? false;
@@ -80,7 +85,8 @@ export async function sendMovieChatMessage(
     }
   }
 
-  const counts = `To watch: ${toWatch.length}. Watched: ${watched.length}.`;
+  const filterNote = filterCategory ? ` (filtered to ${filterCategory} only)` : "";
+  const counts = `To watch: ${toWatch.length}. Watched: ${watched.length}.${filterNote}`;
   const listTitles = toWatch.length > 0 ? toWatch.map((m) => m.title).join(", ") : "(empty)";
 
   const contextParts: string[] = [

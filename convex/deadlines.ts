@@ -13,7 +13,7 @@ export const list = query({
   handler: async (ctx) => {
     await requireUserIdentity(ctx);
     const items = await ctx.db.query("deadlines").collect();
-    return items.sort((a, b) => a.deadline.localeCompare(b.deadline));
+    return items.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   },
 });
 
@@ -24,7 +24,18 @@ export const create = mutation({
     category: categoryValidator,
   },
   handler: async (ctx, args) => {
-    return ctx.db.insert("deadlines", args);
+    await requireUserIdentity(ctx);
+    const all = await ctx.db.query("deadlines").collect();
+    const maxOrder = all.reduce((m, i) => Math.max(m, i.sortOrder ?? 0), 0);
+    return ctx.db.insert("deadlines", { ...args, sortOrder: maxOrder + 1 });
+  },
+});
+
+export const reorder = mutation({
+  args: { orderedIds: v.array(v.id("deadlines")) },
+  handler: async (ctx, { orderedIds }) => {
+    await requireUserIdentity(ctx);
+    await Promise.all(orderedIds.map((id, i) => ctx.db.patch(id, { sortOrder: i })));
   },
 });
 

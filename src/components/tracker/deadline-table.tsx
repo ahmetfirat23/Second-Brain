@@ -4,8 +4,17 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useQuery, useMutation } from "convex/react";
 import { differenceInDays, format, parseISO } from "date-fns";
-import { AlertTriangle, Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useState, useTransition } from "react";
+import {
+  DndContext, DragEndEvent, KeyboardSensor, PointerSensor,
+  closestCenter, useSensor, useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const CATEGORIES = ["Job", "Lecture", "Other"] as const;
 type Category = typeof CATEGORIES[number];
@@ -17,8 +26,12 @@ const CATEGORY_STYLES: Record<string, string> = {
 };
 
 function getDaysLeft(deadline: string) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  return differenceInDays(parseISO(deadline), today);
+  try {
+    const d = parseISO(deadline);
+    if (isNaN(d.getTime())) return 0;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return differenceInDays(d, today);
+  } catch { return 0; }
 }
 
 function UrgencyBadge({ days }: { days: number }) {
@@ -29,11 +42,141 @@ function UrgencyBadge({ days }: { days: number }) {
   return <span className="text-xs text-[hsl(0_0%_72%)]">{days}d left</span>;
 }
 
+function isValidDate(s: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s).getTime());
+}
+
+type DeadlineItem = {
+  _id: Id<"deadlines">;
+  task: string;
+  deadline: string;
+  category: Category;
+  sortOrder?: number;
+};
+
+function SortableRow({
+  item,
+  onEdit,
+  onRemove,
+  editingId,
+  editTask,
+  editDeadline,
+  editCategory,
+  setEditTask,
+  setEditDeadline,
+  setEditCategory,
+  onSave,
+  onCancelEdit,
+}: {
+  item: DeadlineItem;
+  onEdit: () => void;
+  onRemove: () => void;
+  editingId: Id<"deadlines"> | null;
+  editTask: string;
+  editDeadline: string;
+  editCategory: Category;
+  setEditTask: (v: string) => void;
+  setEditDeadline: (v: string) => void;
+  setEditCategory: (v: Category) => void;
+  onSave: () => void;
+  onCancelEdit: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const days = getDaysLeft(item.deadline);
+  const isUrgent = days <= 7;
+  const isEditing = editingId === item._id;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group flex items-start gap-2 px-3 py-3 border-b border-[hsl(0_0%_11%)] last:border-0 transition-colors ${
+        isUrgent ? "bg-red-950/20 hover:bg-red-950/30" : "hover:bg-[hsl(0_0%_11%)]"
+      } ${isDragging ? "z-50 shadow-lg" : ""}`}
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="mt-1 shrink-0 cursor-grab active:cursor-grabbing text-[hsl(0_0%_40%)] hover:text-[hsl(0_0%_60%)] touch-manipulation"
+        tabIndex={-1}
+      >
+        <GripVertical className="w-3.5 h-3.5" />
+      </button>
+
+      {isEditing ? (
+        <div className="flex-1 flex flex-col sm:flex-row gap-2">
+          <input
+            autoFocus
+            value={editTask}
+            onChange={(e) => setEditTask(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onSave()}
+            className="flex-1 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.4)] rounded-lg px-3 py-1.5 text-sm text-white outline-none"
+          />
+          <input
+            type="date"
+            value={editDeadline}
+            onChange={(e) => setEditDeadline(e.target.value)}
+            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none [color-scheme:dark]"
+          />
+          <select
+            value={editCategory}
+            onChange={(e) => setEditCategory(e.target.value as Category)}
+            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none"
+          >
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <div className="flex gap-1 shrink-0">
+            <button onClick={onSave} className="p-1.5 rounded-md bg-[hsl(263_90%_60%/0.2)] text-violet-400 hover:bg-[hsl(263_90%_60%/0.3)]"><Check className="w-3.5 h-3.5" /></button>
+            <button onClick={onCancelEdit} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_75%)]"><X className="w-3.5 h-3.5" /></button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 min-w-0 flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              {isUrgent && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" />}
+              <span className={`text-sm font-medium ${isUrgent ? "text-red-200" : "text-white"}`}>{item.task}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="text-xs text-[hsl(0_0%_70%)]">
+                {(() => {
+                  try {
+                    const d = parseISO(item.deadline);
+                    return isNaN(d.getTime()) ? item.deadline : format(d, "MMM d, yyyy");
+                  } catch { return item.deadline; }
+                })()}
+              </span>
+              <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${CATEGORY_STYLES[item.category] ?? CATEGORY_STYLES.Other}`}>
+                {item.category}
+              </span>
+              <UrgencyBadge days={days} />
+            </div>
+          </div>
+          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+            <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_75%)] hover:text-white"><Pencil className="w-3.5 h-3.5" /></button>
+            <button onClick={onRemove} className="p-1.5 rounded-md hover:bg-red-900/40 text-[hsl(0_0%_75%)] hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DeadlineTable() {
   const items = useQuery(api.deadlines.list) ?? [];
   const createDeadline = useMutation(api.deadlines.create);
   const updateDeadline = useMutation(api.deadlines.update);
   const removeDeadline = useMutation(api.deadlines.remove);
+  const reorderDeadlines = useMutation(api.deadlines.reorder);
 
   const [editingId, setEditingId] = useState<Id<"deadlines"> | null>(null);
   const [editTask, setEditTask] = useState("");
@@ -47,6 +190,11 @@ export function DeadlineTable() {
   const [filterUrgency, setFilterUrgency] = useState<"all" | "overdue" | "this_week" | "later">("all");
   const [isPending, startTransition] = useTransition();
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const filteredItems = items.filter((item) => {
     if (filterCategory !== "all" && item.category !== filterCategory) return false;
     if (filterUrgency !== "all") {
@@ -58,11 +206,15 @@ export function DeadlineTable() {
     return true;
   });
 
-  function startEdit(id: Id<"deadlines">, task: string, deadline: string, category: Category) {
-    setEditingId(id); setEditTask(task); setEditDeadline(deadline); setEditCategory(category);
+  function startEdit(item: DeadlineItem) {
+    setEditingId(item._id);
+    setEditTask(item.task);
+    setEditDeadline(item.deadline);
+    setEditCategory(item.category);
   }
 
   function saveEdit(id: Id<"deadlines">) {
+    if (!isValidDate(editDeadline)) return;
     startTransition(async () => {
       await updateDeadline({ id, task: editTask, deadline: editDeadline, category: editCategory });
       setEditingId(null);
@@ -70,11 +222,21 @@ export function DeadlineTable() {
   }
 
   function handleAdd() {
-    if (!newTask.trim() || !newDeadline) return;
+    if (!newTask.trim() || !isValidDate(newDeadline)) return;
     startTransition(async () => {
       await createDeadline({ task: newTask.trim(), deadline: newDeadline, category: newCategory });
       setNewTask(""); setNewDeadline(""); setShowAdd(false);
     });
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const allIds = items.map((i) => i._id);
+    const oldIdx = allIds.indexOf(active.id as Id<"deadlines">);
+    const newIdx = allIds.indexOf(over.id as Id<"deadlines">);
+    const reordered = arrayMove(items, oldIdx, newIdx);
+    reorderDeadlines({ orderedIds: reordered.map((i) => i._id) });
   }
 
   return (
@@ -93,7 +255,7 @@ export function DeadlineTable() {
             </select>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleAdd} disabled={!newTask.trim() || !newDeadline || isPending}
+            <button onClick={handleAdd} disabled={!newTask.trim() || !isValidDate(newDeadline) || isPending}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] disabled:opacity-40 text-white text-sm font-medium">
               <Check className="w-3.5 h-3.5" /> Add
             </button>
@@ -116,20 +278,14 @@ export function DeadlineTable() {
           {items.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="text-xs text-[hsl(0_0%_64%)]">Category</span>
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value as Category | "all")}
-                className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
-              >
+              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value as Category | "all")}
+                className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]">
                 <option value="all">All</option>
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
               <span className="text-xs text-[hsl(0_0%_64%)]">Urgency</span>
-              <select
-                value={filterUrgency}
-                onChange={(e) => setFilterUrgency(e.target.value as typeof filterUrgency)}
-                className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
-              >
+              <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value as typeof filterUrgency)}
+                className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]">
                 <option value="all">All</option>
                 <option value="overdue">Overdue</option>
                 <option value="this_week">This week</option>
@@ -137,71 +293,29 @@ export function DeadlineTable() {
               </select>
             </div>
           )}
-        <div className="rounded-xl border border-[hsl(0_0%_13%)] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[hsl(0_0%_13%)] bg-[hsl(0_0%_13%)]">
-                <th className="text-left px-4 py-3 text-xs font-medium text-[hsl(0_0%_75%)] uppercase tracking-wider">Task</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-[hsl(0_0%_75%)] uppercase tracking-wider hidden sm:table-cell">Deadline</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-[hsl(0_0%_75%)] uppercase tracking-wider hidden md:table-cell">Category</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-[hsl(0_0%_75%)] uppercase tracking-wider">Status</th>
-                <th className="w-20 px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[hsl(0_0%_11%)]">
-              {filteredItems.map((item) => {
-                const days = getDaysLeft(item.deadline);
-                const isUrgent = days <= 7;
-                const isEditing = editingId === item._id;
-                return (
-                  <tr key={item._id} className={`group transition-colors ${isUrgent ? "bg-red-950/20 hover:bg-red-950/30" : "hover:bg-[hsl(0_0%_11%)]"}`}>
-                    {isEditing ? (
-                      <>
-                        <td className="px-4 py-3" colSpan={3}>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input autoFocus value={editTask} onChange={(e) => setEditTask(e.target.value)} className="flex-1 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.4)] rounded-lg px-3 py-1.5 text-sm text-white outline-none" />
-                            <input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none [color-scheme:dark]" />
-                            <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as Category)} className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none">
-                              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3" />
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1">
-                            <button onClick={() => saveEdit(item._id)} className="p-1.5 rounded-md bg-[hsl(263_90%_60%/0.2)] text-violet-400 hover:bg-[hsl(263_90%_60%/0.3)]"><Check className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => setEditingId(null)} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_75%)]"><X className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-4 py-3">
-                          <span className={`font-medium ${isUrgent ? "text-red-200" : "text-white"}`}>
-                            {isUrgent && <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-2 mb-0.5" />}
-                            {item.task}
-                          </span>
-                          <div className="sm:hidden mt-1 text-xs text-[hsl(0_0%_72%)]">{item.deadline}</div>
-                        </td>
-                        <td className="px-4 py-3 text-[hsl(0_0%_70%)] hidden sm:table-cell">{format(parseISO(item.deadline), "MMM d, yyyy")}</td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <span className={`inline-flex text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${CATEGORY_STYLES[item.category] ?? CATEGORY_STYLES.Other}`}>{item.category}</span>
-                        </td>
-                        <td className="px-4 py-3"><UrgencyBadge days={days} /></td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-                            <button onClick={() => startEdit(item._id, item.task, item.deadline, item.category)} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_75%)] hover:text-white"><Pencil className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => { if (confirm("Delete this deadline?")) removeDeadline({ id: item._id }); }} className="p-1.5 rounded-md hover:bg-red-900/40 text-[hsl(0_0%_75%)] hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+          <div className="rounded-xl border border-[hsl(0_0%_13%)] overflow-hidden">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={filteredItems.map((i) => i._id)} strategy={verticalListSortingStrategy}>
+                {filteredItems.map((item) => (
+                  <SortableRow
+                    key={item._id}
+                    item={item as DeadlineItem}
+                    onEdit={() => startEdit(item as DeadlineItem)}
+                    onRemove={() => { if (confirm("Delete this deadline?")) removeDeadline({ id: item._id }); }}
+                    editingId={editingId}
+                    editTask={editTask}
+                    editDeadline={editDeadline}
+                    editCategory={editCategory}
+                    setEditTask={setEditTask}
+                    setEditDeadline={setEditDeadline}
+                    setEditCategory={setEditCategory}
+                    onSave={() => saveEdit(item._id)}
+                    onCancelEdit={() => setEditingId(null)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </div>
         </>
       )}
     </div>

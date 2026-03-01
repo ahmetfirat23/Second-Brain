@@ -42,8 +42,7 @@ export function BottomNav() {
   const overdueGoals = useQuery(api.goals.getOverdue, skip ? "skip" : {}) ?? [];
 
   const urgentCount = deadlines.filter((d) => {
-    const days = differenceInDays(parseISO(d.deadline), new Date());
-    return days <= 7;
+    try { const dt = parseISO(d.deadline); if (isNaN(dt.getTime())) return false; return differenceInDays(dt, new Date()) <= 7; } catch { return false; }
   }).length;
 
   const isInMore = MORE_NAV.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"));

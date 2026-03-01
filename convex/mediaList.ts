@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireUserIdentity } from "./auth";
 
@@ -83,6 +83,36 @@ export const create = mutation({
     const maxOrder = all.reduce((m, i) => Math.max(m, i.sortOrder), 0);
     const id = await ctx.db.insert("mediaList", { ...args, sortOrder: maxOrder + 1 });
     return { id, action: "created" as const };
+  },
+});
+
+export const bulkCreateInternal = internalMutation({
+  args: {
+    items: v.array(
+      v.object({
+        title: v.string(),
+        year: v.optional(v.string()),
+        category: categoryValidator,
+        watchedAt: v.optional(v.string()),
+        watchedNotes: v.optional(v.string()),
+        userRating: v.optional(v.number()),
+      })
+    ),
+  },
+  handler: async (ctx, { items }) => {
+    const all = await ctx.db.query("mediaList").collect();
+    let maxOrder = all.reduce((m, i) => Math.max(m, i.sortOrder), 0);
+    const batchSeen: { title: string }[] = [];
+    const ids: string[] = [];
+    let skipped = 0;
+    for (const item of items) {
+      if (isDuplicate(all, item) || isDuplicate(batchSeen, item)) { skipped++; continue; }
+      maxOrder++;
+      const id = await ctx.db.insert("mediaList", { ...item, sortOrder: maxOrder });
+      ids.push(id as string);
+      batchSeen.push({ title: item.title });
+    }
+    return { ids, skipped };
   },
 });
 

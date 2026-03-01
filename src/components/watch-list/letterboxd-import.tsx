@@ -35,6 +35,9 @@ function parseLetterboxdFile(
   if (rows.length < 2) return [];
 
   const header = rows[0];
+  if (type === "reviews") console.log(`[Letterboxd] parseCSV returned ${rows.length} rows for reviews`);
+  console.log(`[Letterboxd] ${type} headers:`, header);
+
   const nameIdx = findColumn(header, ["name", "title"]);
   if (nameIdx === -1) return [];
 
@@ -44,11 +47,19 @@ function parseLetterboxdFile(
   const watchedIdx = findColumn(header, ["watcheddate", "watched"]);
   const reviewIdx = type === "reviews" ? findColumn(header, ["review"]) : -1;
 
+  console.log(`[Letterboxd] ${type} column indices — name:${nameIdx} year:${yearIdx} rating:${ratingIdx} date:${dateIdx} watched:${watchedIdx} review:${reviewIdx}`);
+  if (type === "reviews" && rows.length > 1) {
+    console.log(`[Letterboxd] rows[1]:`, rows[1]);
+    console.log(`[Letterboxd] rows[2]:`, rows[2]);
+    console.log(`[Letterboxd] rows[3]:`, rows[3]);
+  }
+
   const result: ImportItem[] = [];
+  let skippedNoTitle = 0;
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const title = row[nameIdx]?.trim();
-    if (!title) continue;
+    if (!title) { skippedNoTitle++; continue; }
 
     const year = yearIdx >= 0 ? row[yearIdx]?.trim() ?? "" : "";
     let rating: number | undefined;
@@ -76,6 +87,7 @@ function parseLetterboxdFile(
       isWatchlist: type === "watchlist",
     });
   }
+  if (type === "reviews") console.log(`[Letterboxd] reviews loop: ${result.length} added, ${skippedNoTitle} skipped (no title)`);
   return result;
 }
 
@@ -129,7 +141,7 @@ function mergeLetterboxdData(
 export function LetterboxdImport() {
   const [show, setShow] = useState(false);
   const [parsed, setParsed] = useState<ImportItem[] | null>(null);
-  const [stats, setStats] = useState({ watched: 0, watchlist: 0 });
+  const [stats, setStats] = useState({ watched: 0, watchlist: 0, reviews: 0 });
   const [sources, setSources] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const bulkCreate = useMutation(api.mediaList.bulkCreate);
@@ -188,12 +200,19 @@ export function LetterboxdImport() {
         watchlist.push(...parseLetterboxdFile(text, "watchlist"));
       }
 
+      console.log(`[Letterboxd] raw reviews parsed: ${reviews.length}, with text: ${reviews.filter(r => r.review?.trim()).length}`);
+      console.log(`[Letterboxd] sample review keys:`, reviews.slice(0, 3).map(r => `"${r.title}"|${r.year} → review: ${r.review ? r.review.slice(0,30) : "NONE"}`));
+      console.log(`[Letterboxd] sample rating keys:`, ratings.slice(0, 3).map(r => `"${r.title}"|${r.year}`));
+
       const merged = mergeLetterboxdData(reviews, ratings, watched, watchlist);
       const watchedItems = merged.filter((m) => !m.isWatchlist);
       const watchlistItems = merged.filter((m) => m.isWatchlist);
 
+      const reviewCount = merged.filter((m) => m.review?.trim()).length;
+      console.log(`[Letterboxd] after merge: ${merged.length} total, ${reviewCount} with reviews`);
+      console.log(`[Letterboxd] merged items with reviews:`, merged.filter(m => m.review?.trim()).map(m => `"${m.title}"|${m.year}`));
       setParsed(merged);
-      setStats({ watched: watchedItems.length, watchlist: watchlistItems.length });
+      setStats({ watched: watchedItems.length, watchlist: watchlistItems.length, reviews: reviewCount });
       setSources(found);
       setShow(true);
     })();
@@ -247,7 +266,7 @@ export function LetterboxdImport() {
       />
       <button
         onClick={() => fileRef.current?.click()}
-        className="flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-violet-400 border border-dashed border-[hsl(0_0%_28%)] hover:border-violet-500/50 rounded-xl px-4 py-3 transition-all"
+        className="hidden lg:flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-violet-400 border border-dashed border-[hsl(0_0%_28%)] hover:border-violet-500/50 rounded-xl px-4 py-3 transition-all"
         title="Upload your Letterboxd export folder"
       >
         <FolderUp className="w-4 h-4" />
@@ -266,14 +285,22 @@ export function LetterboxdImport() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+            <p className="text-xs text-[hsl(0_0%_72%)] mb-1">
+              Found: {sources.join(", ")}
+            </p>
             <p className="text-xs text-[hsl(0_0%_72%)] mb-3">
-              Found: {sources.join(", ")} — {stats.watched} watched, {stats.watchlist} to watch
+              {stats.watched} watched · {stats.watchlist} to watch
+              {stats.reviews > 0
+                ? <span className="text-amber-400"> · {stats.reviews} with reviews</span>
+                : <span className="text-red-400"> · no reviews found {sources.includes("reviews.csv") ? "" : "(reviews.csv missing)"}</span>
+              }
             </p>
             <div className="flex-1 overflow-y-auto mb-4 max-h-48 rounded-lg bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_13%)] p-2">
               {parsed.slice(0, 25).map((p, i) => (
                 <div key={i} className="text-xs text-[hsl(0_0%_70%)] py-0.5 truncate flex gap-2">
-                  <span>{p.title}{p.year ? ` (${p.year})` : ""}</span>
+                  <span className="truncate">{p.title}{p.year ? ` (${p.year})` : ""}</span>
                   {p.rating != null && <span className="text-amber-400 shrink-0">★ {p.rating}/10</span>}
+                  {p.review?.trim() && <span className="text-emerald-400 shrink-0">review</span>}
                   {p.isWatchlist && <span className="text-sky-400 shrink-0">to watch</span>}
                 </div>
               ))}

@@ -7,7 +7,7 @@ export const list = query({
   handler: async (ctx) => {
     await requireUserIdentity(ctx);
     const items = await ctx.db.query("vault").collect();
-    return items.sort((a, b) => b.urgency - a.urgency || b._creationTime - a._creationTime);
+    return items.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || b._creationTime - a._creationTime);
   },
 });
 
@@ -15,7 +15,17 @@ export const create = mutation({
   args: { title: v.string(), url: v.string(), urgency: v.number() },
   handler: async (ctx, args) => {
     await requireUserIdentity(ctx);
-    return ctx.db.insert("vault", args);
+    const all = await ctx.db.query("vault").collect();
+    const maxOrder = all.reduce((m, i) => Math.max(m, i.sortOrder ?? 0), 0);
+    return ctx.db.insert("vault", { ...args, sortOrder: maxOrder + 1 });
+  },
+});
+
+export const reorder = mutation({
+  args: { orderedIds: v.array(v.id("vault")) },
+  handler: async (ctx, { orderedIds }) => {
+    await requireUserIdentity(ctx);
+    await Promise.all(orderedIds.map((id, i) => ctx.db.patch(id, { sortOrder: i })));
   },
 });
 
