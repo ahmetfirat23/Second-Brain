@@ -1,5 +1,6 @@
 "use client";
 
+import { UserButton } from "@clerk/nextjs";
 import { Brain, Command } from "lucide-react";
 
 interface MobileHeaderProps {
@@ -15,13 +16,16 @@ export function MobileHeader({ onCmdK }: MobileHeaderProps) {
         </div>
         <span className="text-xs font-semibold text-white truncate">Mergen</span>
       </div>
-      <button
-        onClick={onCmdK}
-        className="p-1.5 rounded-md text-[hsl(0_0%_68%)] hover:text-white hover:bg-[hsl(0_0%_13%)] transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
-        title="Search"
-      >
-        <Command className="w-3.5 h-3.5" />
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={onCmdK}
+          className="p-1.5 rounded-md text-[hsl(0_0%_68%)] hover:text-white hover:bg-[hsl(0_0%_13%)] transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+          title="Search"
+        >
+          <Command className="w-3.5 h-3.5" />
+        </button>
+        <UserButton afterSignOutUrl="/sign-in" appearance={{ elements: { avatarBox: "w-6 h-6" } }} />
+      </div>
     </header>
   );
 }

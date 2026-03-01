@@ -73,7 +73,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[hsl(0_0%_13%)] border-t border-[hsl(0_0%_22%)] safe-area-pb">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[55] bg-[hsl(0_0%_13%)] border-t border-[hsl(0_0%_22%)] safe-area-pb">
       <div className="flex items-center justify-around px-2 py-2">
         {PRIMARY_NAV.map((item) => {
           const badge =
@@ -96,8 +96,8 @@ export function BottomNav() {
           </button>
           {moreOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-40 rounded-xl border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_13%)] p-2 shadow-xl z-50">
+              <div className="fixed inset-0 z-[56]" onClick={() => setMoreOpen(false)} />
+              <div className="absolute bottom-full right-0 mb-2 w-44 rounded-xl border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_13%)] p-2 shadow-xl z-[57]">
                 {MORE_NAV.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || pathname.startsWith(item.href + "/");

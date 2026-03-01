@@ -77,19 +77,19 @@ export default function DailyTodosPage() {
       </div>
 
       <div className="space-y-3 sm:space-y-4">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+        <div className="flex flex-row gap-2">
           <input
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             placeholder="What will you do today?"
-            className="flex-1 min-w-0 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-4 py-3 sm:py-2.5 text-base sm:text-sm text-white placeholder:text-[hsl(0_0%_64%)] outline-none focus:border-teal-600/50"
+            className="flex-1 min-w-0 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-[hsl(0_0%_64%)] outline-none focus:border-teal-600/50"
           />
           <div className="flex gap-2">
             <select
               value={newUrgency}
               onChange={(e) => setNewUrgency(Number(e.target.value))}
-              className="w-20 sm:w-14 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-3 sm:py-2.5 text-sm text-white outline-none [color-scheme:dark]"
+              className="w-12 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-1.5 py-2.5 text-sm text-white outline-none [color-scheme:dark]"
               title="Urgency 1-5"
             >
               {URGENCY_OPTIONS.map((o) => (
@@ -101,9 +101,9 @@ export default function DailyTodosPage() {
             <button
               onClick={handleAdd}
               disabled={!newText.trim() || isPending}
-              className="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 p-3 sm:p-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white transition-colors flex items-center justify-center"
+              className="p-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white transition-colors flex items-center justify-center"
             >
-              <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
         </div>

@@ -76,7 +76,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
       <button
         onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
         aria-label="Scroll to top"
-        className={`fixed bottom-[72px] left-[68px] z-40 w-9 h-9 rounded-full bg-[hsl(0_0%_16%)] hover:bg-[hsl(0_0%_22%)] border border-[hsl(0_0%_28%)] shadow-lg flex items-center justify-center text-[hsl(0_0%_68%)] hover:text-white transition-all duration-200 lg:bottom-5 lg:left-auto lg:right-[72px] ${
+        className={`fixed bottom-[72px] right-[56px] z-40 w-8 h-8 rounded-full bg-[hsl(0_0%_16%)] hover:bg-[hsl(0_0%_22%)] border border-[hsl(0_0%_28%)] shadow-lg flex items-center justify-center text-[hsl(0_0%_68%)] hover:text-white transition-all duration-200 lg:bottom-5 lg:left-auto lg:right-[72px] lg:w-9 lg:h-9 ${
           showScrollTop ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none"
         }`}
       >

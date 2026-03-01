@@ -99,24 +99,32 @@ export function MovieChat() {
 
   return (
     <>
-      {/* Floating button — left on mobile (avoids More menu on right), right on desktop */}
+      {/* Floating button — right on mobile, hidden when chat open */}
       <button
         onClick={() => { setOpen((o) => !o); if (!open) setTimeout(() => inputRef.current?.focus(), 200); }}
-        className="fixed bottom-[72px] left-4 z-40 w-12 h-12 rounded-full bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] shadow-lg shadow-[hsl(263_90%_60%/0.3)] flex items-center justify-center text-white transition-all hover:scale-105 lg:bottom-5 lg:left-auto lg:right-5"
+        className={`fixed bottom-[72px] right-4 z-40 w-10 h-10 rounded-full bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] shadow-lg shadow-[hsl(263_90%_60%/0.3)] flex items-center justify-center text-white transition-all hover:scale-105 lg:bottom-5 lg:w-12 lg:h-12 ${open ? "hidden lg:flex" : ""}`}
         title="Movie chat"
       >
-        {open ? <Minus className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+        <MessageCircle className="w-4 h-4 lg:w-5 lg:h-5" />
       </button>
 
-      {/* Chat panel — anchored to same side as button */}
+      {/* Mobile backdrop — closes chat when tapping outside */}
       {open && (
         <div
-          className="fixed bottom-[140px] left-4 z-40 flex flex-col rounded-xl border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_10%)] shadow-2xl overflow-hidden transition-all duration-200 lg:bottom-20 lg:left-auto lg:right-5"
+          className="fixed inset-0 z-40 lg:hidden bg-black/70"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Chat panel */}
+      {open && (
+        <div
+          className="fixed bottom-[76px] right-4 z-50 flex flex-col rounded-xl border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_10%)] shadow-2xl overflow-hidden transition-all duration-200 lg:bottom-20 lg:right-5 lg:z-40"
           style={{
             width: enlarged ? CHAT_SIZES.large.w : CHAT_SIZES.normal.w,
             height: enlarged ? CHAT_SIZES.large.h : CHAT_SIZES.normal.h,
-            maxWidth: "calc(100vw - 2.5rem)",
-            maxHeight: "75vh",
+            maxWidth: "calc(100vw - 2rem)",
+            maxHeight: "calc(100vh - 96px)",
           }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[hsl(0_0%_22%)] bg-[hsl(0_0%_13%)]">
