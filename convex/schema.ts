@@ -50,6 +50,8 @@ export default defineSchema({
     autoIncludeEnabled: v.optional(v.boolean()),
     includeRatings: v.optional(v.boolean()),
     useLimitMode: v.optional(v.boolean()),
+    aiProvider: v.optional(v.union(v.literal("grok"), v.literal("gpt"))),
+    aiGptModel: v.optional(v.union(v.literal("gpt-5-mini"), v.literal("gpt-5-nano"))),
   }),
 
   deadlines: defineTable({

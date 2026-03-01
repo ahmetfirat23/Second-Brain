@@ -1,41 +1,21 @@
-import { v } from "convex/values";
-import { mutation } from "./_generated/server";
-import { requireUserIdentity } from "./auth";
+import { internalMutation } from "./_generated/server";
+
+const TABLES = [
+  "apiUsage", "dailyTodos", "goals", "knowledgeCards", "vault",
+  "deadlines", "chatContext", "mediaList", "tasteSummary", "brainDumps",
+] as const;
 
 /**
- * Clears all data from the database. Run via:
- *   npx convex run clearData:clearAll '{"confirm": "DELETE_ALL"}'
- *
- * Or from Convex Dashboard → Functions → clearData:clearAll
+ * Clears all data. CLI only — cannot be called from the browser.
+ * Run via:  npx convex run clearData:clearAll
  */
-export const clearAll = mutation({
-  args: { confirm: v.string() },
-  handler: async (ctx, { confirm }) => {
-    await requireUserIdentity(ctx);
-    if (confirm !== "DELETE_ALL") {
-      throw new Error('Must pass confirm: "DELETE_ALL" to clear all data');
-    }
-
-    const tables = [
-      "apiUsage",
-      "dailyTodos",
-      "goals",
-      "knowledgeCards",
-      "vault",
-      "deadlines",
-      "chatContext",
-      "mediaList",
-      "tasteSummary",
-      "brainDumps",
-    ] as const;
-
-    for (const table of tables) {
+export const clearAll = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const table of TABLES) {
       const docs = await ctx.db.query(table).collect();
-      for (const doc of docs) {
-        await ctx.db.delete(doc._id);
-      }
+      for (const doc of docs) await ctx.db.delete(doc._id);
     }
-
-    return { cleared: tables };
+    return { cleared: TABLES };
   },
 });

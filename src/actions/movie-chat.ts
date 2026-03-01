@@ -2,20 +2,31 @@
 
 import { api } from "../../convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
+import { auth } from "@clerk/nextjs/server";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+async function getConvex() {
+  const authInstance = await auth();
+  const token = await authInstance.getToken({ template: "convex" });
+  const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+  if (token) client.setAuth(token);
+  return client;
+}
 
-async function logGrokUsage(
+async function logUsage(
+  convex: ConvexHttpClient,
   source: string,
+  provider: string,
   inputTokens: number,
-  outputTokens: number
+  outputTokens: number,
+  model?: string
 ) {
   try {
     await convex.mutation(api.apiUsage.log, {
       source,
-      provider: "grok",
+      provider,
       inputTokens,
       outputTokens,
+      ...(provider === "gpt" && model && { model }),
     });
   } catch {
     /* ignore logging errors */
@@ -37,14 +48,21 @@ export async function sendMovieChatMessage(
   userMessage: string,
   history: ChatMessage[]
 ): Promise<{ content: string; error?: string }> {
-  const apiKey = process.env.GROK_API_KEY;
-  if (!apiKey) return { content: "", error: "GROK_API_KEY is not set in .env.local" };
-
+  const convex = await getConvex();
   const [watchList, tasteSummary, chatCtx] = await Promise.all([
     convex.query(api.mediaList.list, {}),
     convex.query(api.tasteSummary.get, {}),
     convex.query(api.chatContext.getSettings, {}),
   ]);
+
+  const provider = chatCtx?.aiProvider ?? "grok";
+  const model = chatCtx?.aiGptModel ?? "gpt-5-nano";
+
+  if (provider === "gpt") {
+    if (!process.env.OPENAI_API_KEY) return { content: "", error: "OPENAI_API_KEY is not set in .env.local. Add it to use GPT." };
+  } else {
+    if (!process.env.GROK_API_KEY) return { content: "", error: "GROK_API_KEY is not set in .env.local" };
+  }
 
   const toWatch = watchList.filter((m) => !m.watchedAt);
   const watched = watchList.filter((m) => !!m.watchedAt);
@@ -97,30 +115,32 @@ export async function sendMovieChatMessage(
     { role: "user", content: userMessage },
   ];
 
-  const res = await fetch("https://api.x.ai/v1/chat/completions", {
+  const isGpt = provider === "gpt";
+  const url = isGpt ? "https://api.openai.com/v1/chat/completions" : "https://api.x.ai/v1/chat/completions";
+  const apiKey = isGpt ? process.env.OPENAI_API_KEY! : process.env.GROK_API_KEY!;
+  const body = isGpt
+    ? { model, messages, max_completion_tokens: 2048, reasoning_effort: "low" }
+    : { model: "grok-4-1-fast-reasoning", messages, temperature: 0.7, max_tokens: 1024 };
+
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: "grok-4-1-fast-reasoning",
-      messages,
-      temperature: 0.7,
-      max_tokens: 256,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    return { content: "", error: `Grok error: ${err}` };
+    return { content: "", error: `${isGpt ? "OpenAI" : "Grok"} error: ${err}` };
   }
 
   const data = (await res.json()) as {
-    choices: { message: { content: string } }[];
+    choices: { message: { content: string | null; refusal?: string | null } }[];
     usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   const content = data.choices[0]?.message?.content?.trim() ?? "";
   const usage = data.usage;
   if (usage?.prompt_tokens != null && usage?.completion_tokens != null) {
-    await logGrokUsage("movie-chat", usage.prompt_tokens, usage.completion_tokens);
+    await logUsage(convex, "movie-chat", provider, usage.prompt_tokens, usage.completion_tokens, isGpt ? model : undefined);
   }
 
   return { content };

@@ -47,12 +47,15 @@ export function Sidebar({ onCmdK }: SidebarProps) {
   }).length;
 
   return (
-    <aside className="flex flex-col h-full w-14 lg:w-56 bg-[hsl(0_0%_5%)] border-r border-[hsl(0_0%_12%)] shrink-0 transition-all duration-200">
-      <div className="flex items-center gap-3 px-3 lg:px-4 h-14 border-b border-[hsl(0_0%_12%)]">
+    <aside className="hidden lg:flex flex-col h-full w-56 bg-[hsl(0_0%_5%)] border-r border-[hsl(0_0%_22%)] shrink-0 transition-all duration-200">
+      <div className="flex items-center gap-3 px-3 lg:px-4 h-14 border-b border-[hsl(0_0%_22%)]">
         <div className="w-7 h-7 rounded-lg bg-[hsl(263_90%_65%)] flex items-center justify-center shrink-0">
           <Brain className="w-4 h-4 text-white" />
         </div>
-        <span className="hidden lg:block text-sm font-semibold text-white truncate">Mergen, the Second Brain</span>
+        <div className="hidden lg:flex flex-col leading-tight">
+          <span className="text-sm font-semibold text-white">Mergen</span>
+          <span className="text-[11px] text-[hsl(0_0%_52%)]">the Second Brain</span>
+        </div>
       </div>
 
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
@@ -75,7 +78,7 @@ export function Sidebar({ onCmdK }: SidebarProps) {
               className={`group flex items-center gap-3 px-2 lg:px-3 py-2 rounded-md text-sm transition-all duration-150 relative ${
                 isActive
                   ? "bg-[hsl(263_90%_65%/0.15)] text-[hsl(263_90%_75%)]"
-                  : "text-[hsl(0_0%_55%)] hover:text-[hsl(0_0%_85%)] hover:bg-[hsl(0_0%_9%)]"
+                  : "text-[hsl(0_0%_72%)] hover:text-[hsl(0_0%_90%)] hover:bg-[hsl(0_0%_13%)]"
               }`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[hsl(263_90%_70%)]" : ""}`} />
@@ -93,15 +96,15 @@ export function Sidebar({ onCmdK }: SidebarProps) {
         })}
       </nav>
 
-      <div className="p-2 border-t border-[hsl(0_0%_12%)] space-y-0.5">
+      <div className="p-2 border-t border-[hsl(0_0%_22%)] space-y-0.5">
         <button
           onClick={onCmdK}
-          className="w-full flex items-center gap-3 px-2 lg:px-3 py-2 rounded-md text-sm text-[hsl(0_0%_40%)] hover:text-[hsl(0_0%_65%)] hover:bg-[hsl(0_0%_9%)] transition-colors"
+          className="w-full flex items-center gap-3 px-2 lg:px-3 py-2 rounded-md text-sm text-[hsl(0_0%_68%)] hover:text-[hsl(0_0%_80%)] hover:bg-[hsl(0_0%_13%)] transition-colors"
         >
           <Command className="w-4 h-4 shrink-0" />
           <span className="hidden lg:flex items-center gap-2 flex-1 justify-between">
             <span>Search</span>
-            <kbd className="text-[10px] bg-[hsl(0_0%_12%)] border border-[hsl(0_0%_18%)] rounded px-1 py-0.5">⌘K</kbd>
+            <kbd className="text-[10px] bg-[hsl(0_0%_12%)] border border-[hsl(0_0%_28%)] rounded px-1 py-0.5">⌘K</kbd>
           </span>
         </button>
         <div className="px-2 lg:px-3 py-2">
@@ -110,8 +113,8 @@ export function Sidebar({ onCmdK }: SidebarProps) {
               elements: {
                 avatarBox: "w-7 h-7",
                 userButtonPopoverCard: "bg-[hsl(0,0%,9%)] border border-[hsl(0,0%,16%)]",
-                userButtonPopoverActionButton: "hover:bg-[hsl(0,0%,12%)] text-[hsl(0,0%,70%)]",
-                userButtonPopoverActionButtonText: "text-[hsl(0,0%,70%)]",
+                userButtonPopoverActionButton: "hover:bg-[hsl(0,0%,12%)] text-[hsl(0,0%,80%)]",
+                userButtonPopoverActionButtonText: "text-[hsl(0,0%,80%)]",
                 userButtonPopoverFooter: "hidden",
               },
             }}

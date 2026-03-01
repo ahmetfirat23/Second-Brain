@@ -3,45 +3,31 @@
 import { MediaGrid } from "@/components/watch-list/media-grid";
 import { api } from "../../../convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ChevronDown, ChevronUp, Database, Pencil, PlaySquare, RefreshCw } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Database, Pencil, PlaySquare, RefreshCw, Sparkles, X, Check } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-export default function WatchListPage() {
+function TasteModal({ onClose }: { onClose: () => void }) {
   const tasteSummary = useQuery(api.tasteSummary.get);
   const generateTasteSummary = useAction(api.ai.generateTasteSummary);
   const setTasteSummary = useMutation(api.tasteSummary.set);
-  const triggerEnrichment = useAction(api.tmdbEnrichment.triggerEnrichmentNow);
-  const [isRefreshing, startTransition] = useTransition();
-  const [isEnriching, setIsEnriching] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [isRefreshing, startRefresh] = useTransition();
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [isSaving, startSave] = useTransition();
 
-  function handleRefreshTaste() {
-    startTransition(async () => {
-      const result = await generateTasteSummary({});
-      if (result.success) {
-        toast.success("Taste summary updated");
-      } else {
-        toast.error(result.error ?? "Failed to update");
-      }
-    });
-  }
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
-  function handleTriggerEnrichment() {
-    setIsEnriching(true);
-    triggerEnrichment({})
-      .then(({ scheduled }) => {
-        if (scheduled > 0) {
-          toast.success(`TMDB enrichment scheduled for ${scheduled} items`);
-        } else {
-          toast.info("No items need TMDB metadata");
-        }
-      })
-      .catch(() => toast.error("Failed to trigger enrichment"))
-      .finally(() => setIsEnriching(false));
+  function handleRefresh() {
+    startRefresh(async () => {
+      const result = await generateTasteSummary({});
+      if (result.success) toast.success("Taste summary updated");
+      else toast.error(result.error ?? "Failed to update");
+    });
   }
 
   function startEdit() {
@@ -49,7 +35,7 @@ export default function WatchListPage() {
     setEditing(true);
   }
 
-  function handleSaveEdit() {
+  function handleSave() {
     if (!editText.trim()) return;
     startSave(async () => {
       await setTasteSummary({ summary: editText.trim(), updatedAt: new Date().toISOString() });
@@ -59,106 +45,130 @@ export default function WatchListPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-8">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-sky-900/30 flex items-center justify-center">
-              <PlaySquare className="w-4 h-4 text-sky-400" />
-            </div>
-            <h1 className="text-xl font-semibold text-white">Watch List</h1>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-[hsl(0_0%_11%)] border border-[hsl(0_0%_22%)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[hsl(0_0%_20%)]">
+          <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-white">Taste Profile</h3>
+            {tasteSummary?.updatedAt && (
+              <p className="text-[10px] text-[hsl(0_0%_50%)]">Updated {new Date(tasteSummary.updatedAt).toLocaleDateString()}</p>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleTriggerEnrichment}
-              disabled={isEnriching}
-              className="flex items-center gap-1.5 text-xs text-[hsl(0_0%_45%)] hover:text-violet-400 transition-colors disabled:opacity-50"
-              title="Fetch TMDB metadata for items without it"
-            >
-              <Database className={`w-3.5 h-3.5 ${isEnriching ? "animate-pulse" : ""}`} />
-              Fetch TMDB
-            </button>
-            <button
-              onClick={handleRefreshTaste}
-              disabled={isRefreshing}
-              className="flex items-center gap-1.5 text-xs text-[hsl(0_0%_45%)] hover:text-violet-400 transition-colors disabled:opacity-50"
-              title="Regenerate taste summary for the chatbot"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-              Refresh taste
+          <div className="flex items-center gap-1">
+            {!editing && (
+              <>
+                <button onClick={startEdit} title="Edit manually"
+                  className="p-1.5 rounded-lg text-[hsl(0_0%_55%)] hover:text-white hover:bg-[hsl(0_0%_16%)] transition-colors">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={handleRefresh} disabled={isRefreshing} title="Regenerate with AI"
+                  className="p-1.5 rounded-lg text-[hsl(0_0%_55%)] hover:text-violet-400 hover:bg-[hsl(0_0%_16%)] transition-colors disabled:opacity-50">
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                </button>
+              </>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded-lg text-[hsl(0_0%_55%)] hover:text-white hover:bg-[hsl(0_0%_16%)] transition-colors">
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
-        <p className="text-sm text-[hsl(0_0%_45%)] ml-11">
-          Drag to reorder. Mark as watched to add opinions. Use the send icon to include a review in chat.
-        </p>
-      </div>
 
-      {/* Taste summary */}
-      <div className="mb-6 rounded-xl border border-[hsl(0_0%_15%)] bg-[hsl(0_0%_8%)] overflow-hidden">
-        <button
-          onClick={() => setExpanded((e) => !e)}
-          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[hsl(0_0%_10%)] transition-colors"
-        >
-          <span className="text-sm font-medium text-white">Taste summary</span>
-          <span className="text-xs text-[hsl(0_0%_45%)]">
-            {tasteSummary?.updatedAt ? new Date(tasteSummary.updatedAt).toLocaleDateString() : "Not generated"}
-          </span>
-          {expanded ? <ChevronUp className="w-4 h-4 text-[hsl(0_0%_40%)]" /> : <ChevronDown className="w-4 h-4 text-[hsl(0_0%_40%)]" />}
-        </button>
-        {expanded && (
-          <div className="px-4 pb-4 pt-0 border-t border-[hsl(0_0%_12%)]">
-            {editing ? (
-              <div className="space-y-3 pt-3">
-                <textarea
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  rows={6}
-                  className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_30%)] outline-none resize-none"
-                  placeholder="Your taste summary for the chatbot…"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveEdit}
-                    disabled={isSaving || !editText.trim()}
-                    className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium"
-                  >
-                    Save
-                  </button>
-                  <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_60%)] text-sm">
-                    Cancel
-                  </button>
-                </div>
+        <div className="p-4">
+          {editing ? (
+            <div className="space-y-3">
+              <textarea
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                rows={6}
+                autoFocus
+                className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_55%)] outline-none resize-none focus:border-[hsl(263_90%_60%/0.5)]"
+                placeholder="Describe your taste for the chatbot…"
+              />
+              <div className="flex gap-2">
+                <button onClick={handleSave} disabled={isSaving || !editText.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+                  <Check className="w-3 h-3" /> Save
+                </button>
+                <button onClick={() => setEditing(false)}
+                  className="px-3 py-1.5 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-[hsl(0_0%_18%)] text-[hsl(0_0%_68%)] text-sm transition-colors">
+                  Cancel
+                </button>
               </div>
-            ) : (
-              <div className="pt-3">
-                {tasteSummary?.summary ? (
-                  <>
-                    <p className="text-sm text-[hsl(0_0%_75%)] leading-relaxed whitespace-pre-wrap">{tasteSummary.summary}</p>
-                    <button
-                      onClick={startEdit}
-                      className="mt-3 flex items-center gap-1.5 text-xs text-[hsl(0_0%_45%)] hover:text-violet-400 transition-colors"
-                    >
-                      <Pencil className="w-3 h-3" /> Edit
-                    </button>
-                  </>
-                ) : (
-                  <div className="pt-3">
-                    <p className="text-sm text-[hsl(0_0%_45%)]">
-                      No summary yet. Click &quot;Refresh taste&quot; to generate one, or write your own.
-                    </p>
-                    <button
-                      onClick={startEdit}
-                      className="mt-3 flex items-center gap-1.5 text-xs text-[hsl(0_0%_45%)] hover:text-violet-400 transition-colors"
-                    >
-                      <Pencil className="w-3 h-3" /> Edit / Create
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
+          ) : tasteSummary?.summary ? (
+            <p className="text-sm text-[hsl(0_0%_78%)] leading-relaxed whitespace-pre-wrap">{tasteSummary.summary}</p>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-[hsl(0_0%_55%)] mb-3">No taste profile yet.</p>
+              <button onClick={handleRefresh} disabled={isRefreshing}
+                className="flex items-center gap-2 mx-auto px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+                <Sparkles className="w-3.5 h-3.5" />
+                {isRefreshing ? "Generating…" : "Generate with AI"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function WatchListPage() {
+  const tasteSummary = useQuery(api.tasteSummary.get);
+  const triggerEnrichment = useAction(api.tmdbEnrichment.triggerEnrichmentNow);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [tasteOpen, setTasteOpen] = useState(false);
+
+  function handleTriggerEnrichment() {
+    setIsEnriching(true);
+    triggerEnrichment({})
+      .then(({ scheduled }) => {
+        if (scheduled > 0) toast.success(`TMDB enrichment scheduled for ${scheduled} items`);
+        else toast.info("No items need TMDB metadata");
+      })
+      .catch(() => toast.error("Failed to trigger enrichment"))
+      .finally(() => setIsEnriching(false));
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      {tasteOpen && <TasteModal onClose={() => setTasteOpen(false)} />}
+
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-sky-900/30 flex items-center justify-center shrink-0">
+            <PlaySquare className="w-3 h-3 sm:w-4 sm:h-4 text-sky-400" />
           </div>
-        )}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base sm:text-xl font-semibold text-white">Watch List</h1>
+          </div>
+          <button
+            onClick={handleTriggerEnrichment}
+            disabled={isEnriching}
+            className="flex items-center gap-1.5 text-xs text-[hsl(0_0%_64%)] hover:text-violet-400 transition-colors disabled:opacity-50"
+            title="Fetch TMDB metadata for items without it"
+          >
+            <Database className={`w-3.5 h-3.5 ${isEnriching ? "animate-pulse" : ""}`} />
+            <span className="hidden sm:inline">Fetch TMDB</span>
+          </button>
+          <button
+            onClick={() => setTasteOpen(true)}
+            className={`flex items-center gap-1.5 text-xs transition-colors ${
+              tasteSummary?.summary
+                ? "text-violet-400 hover:text-violet-300"
+                : "text-[hsl(0_0%_64%)] hover:text-violet-400"
+            }`}
+            title="View / edit taste profile"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Taste</span>
+          </button>
+        </div>
+        <p className="text-[10px] sm:text-xs text-[hsl(0_0%_68%)] mt-0.5 sm:mt-1 ml-8 sm:ml-11">
+          <span className="sm:hidden">Drag to reorder. Mark watched.</span>
+          <span className="hidden sm:inline">Drag to reorder. Mark watched for opinions. Send icon adds review to chat.</span>
+        </p>
       </div>
 
       <MediaGrid />

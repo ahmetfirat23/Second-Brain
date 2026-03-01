@@ -29,11 +29,13 @@ export default function DailyTodosPage() {
 
   const [newText, setNewText] = useState("");
   const [newUrgency, setNewUrgency] = useState(3);
+  const [filterUrgency, setFilterUrgency] = useState<number | "all">("all");
   const [isPending, startTransition] = useTransition();
 
   const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
-  const pending = sorted.filter((i) => !i.done);
-  const done = sorted.filter((i) => i.done);
+  const filtered = filterUrgency === "all" ? sorted : sorted.filter((i) => i.urgency === filterUrgency);
+  const pending = filtered.filter((i) => !i.done);
+  const done = filtered.filter((i) => i.done);
 
   function handleAdd() {
     if (!newText.trim()) return;
@@ -45,16 +47,33 @@ export default function DailyTodosPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-8">
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-teal-900/30 flex items-center justify-center shrink-0">
-            <ListTodo className="w-4 h-4 text-teal-400" />
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-teal-900/30 flex items-center justify-center shrink-0">
+            <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 text-teal-400" />
           </div>
-          <h1 className="text-lg sm:text-xl font-semibold text-white truncate">Daily Todos</h1>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-semibold text-white truncate">Daily Todos</h1>
+            <p className="text-[10px] sm:text-xs text-[hsl(0_0%_68%)] truncate">
+              {format(new Date(), "EEE, MMM d")} — midnight reset
+            </p>
+          </div>
         </div>
-        <p className="text-xs sm:text-sm text-[hsl(0_0%_45%)] ml-11 truncate">
-          {format(new Date(), "EEEE, MMM d")} — Resets at midnight
-        </p>
+        {sorted.length > 0 && (
+          <div className="flex items-center gap-2 mt-2 ml-8 sm:ml-11 flex-wrap">
+            <span className="text-xs text-[hsl(0_0%_64%)]">Filter by urgency:</span>
+            <select
+              value={filterUrgency}
+              onChange={(e) => setFilterUrgency(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
+            >
+              <option value="all">All</option>
+              {URGENCY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.value}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3 sm:space-y-4">
@@ -64,13 +83,13 @@ export default function DailyTodosPage() {
             onChange={(e) => setNewText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             placeholder="What will you do today?"
-            className="flex-1 min-w-0 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-4 py-3 sm:py-2.5 text-base sm:text-sm text-white placeholder:text-[hsl(0_0%_35%)] outline-none focus:border-teal-600/50"
+            className="flex-1 min-w-0 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-4 py-3 sm:py-2.5 text-base sm:text-sm text-white placeholder:text-[hsl(0_0%_64%)] outline-none focus:border-teal-600/50"
           />
           <div className="flex gap-2">
             <select
               value={newUrgency}
               onChange={(e) => setNewUrgency(Number(e.target.value))}
-              className="flex-1 sm:flex-none sm:w-14 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-3 sm:py-2.5 text-sm text-white outline-none [color-scheme:dark]"
+              className="w-20 sm:w-14 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-3 sm:py-2.5 text-sm text-white outline-none [color-scheme:dark]"
               title="Urgency 1-5"
             >
               {URGENCY_OPTIONS.map((o) => (
@@ -90,11 +109,11 @@ export default function DailyTodosPage() {
         </div>
 
         {sorted.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[hsl(0_0%_18%)] py-12 sm:py-16 text-center">
-            <p className="text-sm text-[hsl(0_0%_40%)] px-4">No items for today. Add something above.</p>
+          <div className="rounded-xl border border-dashed border-[hsl(0_0%_28%)] py-12 sm:py-16 text-center">
+            <p className="text-sm text-[hsl(0_0%_68%)] px-4">No items for today. Add something above.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-[hsl(0_0%_15%)] bg-[hsl(0_0%_8%)] overflow-hidden">
+          <div className="rounded-xl border border-[hsl(0_0%_34%)] bg-[hsl(0_0%_11%)] overflow-hidden">
             {pending.map((item) => (
               <TodoRow
                 key={item._id}
@@ -163,7 +182,7 @@ function TodoRow({
 
   return (
     <div
-      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 sm:py-3 border-b border-[hsl(0_0%_10%)] last:border-0 group hover:bg-[hsl(0_0%_9%)] active:bg-[hsl(0_0%_9%)] transition-colors min-h-[52px] ${
+      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 sm:py-3 border-b border-[hsl(0_0%_10%)] last:border-0 group hover:bg-[hsl(0_0%_13%)] active:bg-[hsl(0_0%_13%)] transition-colors min-h-[52px] ${
         done ? "opacity-60" : ""
       }`}
     >
@@ -188,13 +207,13 @@ function TodoRow({
               if (e.key === "Enter") handleSave();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="flex-1 min-w-0 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2.5 text-base sm:text-sm text-white outline-none"
+            className="flex-1 min-w-0 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2.5 text-base sm:text-sm text-white outline-none"
           />
           <div className="flex gap-2 items-center">
             <select
               value={editUrgency}
               onChange={(e) => setEditUrgency(Number(e.target.value))}
-              className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2 text-sm text-white outline-none [color-scheme:dark]"
+              className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white outline-none [color-scheme:dark]"
             >
               {urgencyOptions.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -215,7 +234,7 @@ function TodoRow({
         <>
           <span
             onClick={() => setEditing(true)}
-            className={`flex-1 min-w-0 text-sm sm:text-sm cursor-pointer py-1 break-words ${done ? "line-through text-[hsl(0_0%_45%)]" : "text-white"}`}
+            className={`flex-1 min-w-0 text-sm sm:text-sm cursor-pointer py-1 break-words ${done ? "line-through text-[hsl(0_0%_72%)]" : "text-white"}`}
           >
             {item.text}
           </span>
@@ -227,7 +246,7 @@ function TodoRow({
           </span>
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="shrink-0 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1 rounded flex items-center justify-center text-[hsl(0_0%_40%)] hover:text-red-400 active:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
+            className="shrink-0 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1 rounded flex items-center justify-center text-[hsl(0_0%_68%)] hover:text-red-400 active:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
           >
             <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           </button>

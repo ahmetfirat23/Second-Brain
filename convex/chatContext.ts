@@ -16,6 +16,8 @@ export const getSettings = query({
   handler: async (ctx) => {
     await requireUserIdentity(ctx);
     const row = await ctx.db.query("chatContext").first();
+    const rawModel = (row?.aiGptModel ?? "gpt-5-nano") as string;
+    const aiGptModel = rawModel === "gpt-4o-mini" ? "gpt-5-mini" : rawModel === "gpt-4o-nano" ? "gpt-5-nano" : rawModel;
     return {
       pinnedMediaIds: row?.pinnedMediaIds ?? [],
       autoInclude: row?.autoInclude ?? "all",
@@ -23,7 +25,26 @@ export const getSettings = query({
       autoIncludeEnabled: row?.autoIncludeEnabled ?? false,
       includeRatings: row?.includeRatings ?? true,
       useLimitMode: row?.useLimitMode ?? false,
+      aiProvider: row?.aiProvider ?? "grok",
+      aiGptModel: aiGptModel as "gpt-5-mini" | "gpt-5-nano",
     };
+  },
+});
+
+export const setAiPreferences = mutation({
+  args: {
+    aiProvider: v.union(v.literal("grok"), v.literal("gpt")),
+    aiGptModel: v.optional(v.union(v.literal("gpt-5-mini"), v.literal("gpt-5-nano"))),
+  },
+  handler: async (ctx, { aiProvider, aiGptModel }) => {
+    await requireUserIdentity(ctx);
+    let row = await ctx.db.query("chatContext").first();
+    const patch = { aiProvider, aiGptModel: aiGptModel ?? "gpt-5-nano" };
+    if (!row) {
+      await ctx.db.insert("chatContext", { pinnedMediaIds: [], ...patch });
+    } else {
+      await ctx.db.patch(row._id, patch);
+    }
   },
 });
 

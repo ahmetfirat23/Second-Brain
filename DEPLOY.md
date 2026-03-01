@@ -36,6 +36,7 @@ git push -u origin main
 |----------|-------|
 | `CLERK_JWT_ISSUER_DOMAIN` | From Clerk JWT template (see [SECURITY.md](./SECURITY.md)) |
 | `GROK_API_KEY` | Your Grok API key |
+| `OPENAI_API_KEY` | OpenAI API key (optional, for GPT fallback) |
 | `TMDB_API_KEY` | Your TMDB API key (optional) |
 
 ## 4. Configure Clerk
@@ -64,6 +65,7 @@ In Vercel → your project → **Settings** → **Environment Variables**, add:
 | `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/brain-dump` | Production |
 | `TMDB_API_KEY` | Your TMDB API key (for movie search) | Production |
 | `GROK_API_KEY` | Your Grok API key (for brain dump AI) | Production |
+| `OPENAI_API_KEY` | OpenAI API key (optional, for GPT in movie chat & brain dump) | Production |
 
 ## 7. Deploy
 

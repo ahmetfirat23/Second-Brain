@@ -41,7 +41,9 @@ Rules:
 - If no title is given (or the title field is empty), suggest a short, specific title (max 6 words).
 - Return ONLY valid JSON: { "title": "...", "tidiedContent": "..." }`;
 
-async function callGrok(systemPrompt: string, userContent: string): Promise<{ content: string; usage?: { prompt_tokens: number; completion_tokens: number } }> {
+type AiUsage = { prompt_tokens: number; completion_tokens: number };
+
+async function callGrok(systemPrompt: string, userContent: string, options?: { maxTokens?: number }): Promise<{ content: string; usage?: AiUsage }> {
   const apiKey = process.env.GROK_API_KEY;
   if (!apiKey) throw new Error("GROK_API_KEY not set in Convex environment");
 
@@ -55,7 +57,7 @@ async function callGrok(systemPrompt: string, userContent: string): Promise<{ co
         { role: "user", content: userContent },
       ],
       temperature: 0.1,
-      max_tokens: 1024,
+      max_tokens: options?.maxTokens ?? 4096,
       response_format: { type: "json_object" },
     }),
   });
@@ -63,6 +65,42 @@ async function callGrok(systemPrompt: string, userContent: string): Promise<{ co
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Grok API error ${res.status}: ${err}`);
+  }
+
+  const data = (await res.json()) as {
+    choices: { message: { content: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+  const content = data.choices[0]?.message?.content ?? "{}";
+  const usage =
+    data.usage?.prompt_tokens != null && data.usage?.completion_tokens != null
+      ? { prompt_tokens: data.usage.prompt_tokens, completion_tokens: data.usage.completion_tokens }
+      : undefined;
+  return { content, usage };
+}
+
+async function callGpt(systemPrompt: string, userContent: string, model: "gpt-5-mini" | "gpt-5-nano", options?: { maxTokens?: number; reasoningEffort?: "low" | "medium" | "high" }): Promise<{ content: string; usage?: AiUsage }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY not set in Convex environment");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      max_completion_tokens: options?.maxTokens ?? 2048,
+      reasoning_effort: options?.reasoningEffort ?? "low",
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI API error ${res.status}: ${err}`);
   }
 
   const data = (await res.json()) as {
@@ -132,14 +170,30 @@ export const tidyText = action({
   args: { content: v.string(), title: v.optional(v.string()) },
   handler: async (ctx, { content, title }): Promise<{ title: string; tidiedContent: string }> => {
     await requireUserIdentity(ctx);
+    const settings = await ctx.runQuery(api.chatContext.getSettings, {});
+    const provider = settings.aiProvider ?? "grok";
+    const model = settings.aiGptModel ?? "gpt-5-nano";
     const userContent = title ? `Title: ${title}\n\n${content}` : content;
-    const { content: raw, usage } = await callGrok(TIDY_SYSTEM, userContent);
+
+    let raw: string;
+    let usage: AiUsage | undefined;
+    if (provider === "gpt") {
+      const result = await callGpt(TIDY_SYSTEM, userContent, model);
+      raw = result.content;
+      usage = result.usage;
+    } else {
+      const result = await callGrok(TIDY_SYSTEM, userContent);
+      raw = result.content;
+      usage = result.usage;
+    }
+
     if (usage) {
       await ctx.runMutation(api.apiUsage.log, {
         source: "ai-tidy",
-        provider: "grok",
+        provider,
         inputTokens: usage.prompt_tokens,
         outputTokens: usage.completion_tokens,
+        ...(provider === "gpt" && { model }),
       });
     }
     const parsed = JSON.parse(raw) as { title?: string; tidiedContent?: string };
@@ -159,13 +213,29 @@ export const fanOutDump = action({
     summary?: { deadlines: number; media: number; knowledge_cards: number; vault: number; goals: number };
   }> => {
     await requireUserIdentity(ctx);
-    const { content: raw, usage } = await callGrok(FAN_OUT_SYSTEM, content);
+    const settings = await ctx.runQuery(api.chatContext.getSettings, {});
+    const provider = settings.aiProvider ?? "grok";
+    const model = settings.aiGptModel ?? "gpt-5-nano";
+
+    let raw: string;
+    let usage: AiUsage | undefined;
+    if (provider === "gpt") {
+      const result = await callGpt(FAN_OUT_SYSTEM, content, model, { maxTokens: 2048 });
+      raw = result.content;
+      usage = result.usage;
+    } else {
+      const result = await callGrok(FAN_OUT_SYSTEM, content, { maxTokens: 2048 });
+      raw = result.content;
+      usage = result.usage;
+    }
+
     if (usage) {
       await ctx.runMutation(api.apiUsage.log, {
         source: "ai-fanout",
-        provider: "grok",
+        provider,
         inputTokens: usage.prompt_tokens,
         outputTokens: usage.completion_tokens,
+        ...(provider === "gpt" && { model }),
       });
     }
     const parsed = JSON.parse(raw) as Partial<ParsedBrainDump>;
@@ -292,17 +362,41 @@ export const generateTasteSummary = action({
         : "(No personal notes)";
     const userContent = `[Watched items]\n${watchedText}\n\n[Personal notes]\n${dumpsText}`;
     try {
-      const { content: raw, usage } = await callGrok(TASTE_SUMMARY_SYSTEM, userContent);
+      const settings = await ctx.runQuery(api.chatContext.getSettings, {});
+      const provider = settings.aiProvider ?? "grok";
+      const model = settings.aiGptModel ?? "gpt-5-nano";
+
+      let raw: string;
+      let usage: AiUsage | undefined;
+      if (provider === "gpt") {
+        const result = await callGpt(TASTE_SUMMARY_SYSTEM, userContent, model, { maxTokens: 4096, reasoningEffort: "low" });
+        raw = result.content;
+        usage = result.usage;
+      } else {
+        const result = await callGrok(TASTE_SUMMARY_SYSTEM, userContent, { maxTokens: 4096 });
+        raw = result.content;
+        usage = result.usage;
+      }
+
       if (usage) {
         await ctx.runMutation(api.apiUsage.log, {
           source: "ai-taste",
-          provider: "grok",
+          provider,
           inputTokens: usage.prompt_tokens,
           outputTokens: usage.completion_tokens,
+          ...(provider === "gpt" && { model }),
         });
       }
-      const parsed = JSON.parse(raw) as { summary?: string };
-      const summary = (parsed.summary ?? raw).trim().slice(0, 500);
+      if (!raw?.trim()) throw new Error("AI returned empty response — try again");
+      const jsonStr = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      let summary: string;
+      try {
+        const parsed = JSON.parse(jsonStr) as { summary?: string };
+        summary = (parsed.summary ?? jsonStr).trim().slice(0, 3000);
+      } catch {
+        // Model returned plain text instead of JSON — use it directly
+        summary = jsonStr.slice(0, 3000);
+      }
       await ctx.runMutation(api.tasteSummary.set, {
         summary,
         updatedAt: new Date().toISOString(),
@@ -314,7 +408,7 @@ export const generateTasteSummary = action({
   },
 });
 
-// Internal cron: fan-out all pending (non-standalone) dumps
+// Internal cron: fan-out all pending (non-standalone) dumps. Uses Grok (no user context in cron).
 export const tidyAllPending = internalAction({
   args: {},
   handler: async (ctx) => {
@@ -324,7 +418,7 @@ export const tidyAllPending = internalAction({
     let errors = 0;
     for (const dump of pending) {
       try {
-        const { content: raw, usage } = await callGrok(FAN_OUT_SYSTEM, dump.content);
+        const { content: raw, usage } = await callGrok(FAN_OUT_SYSTEM, dump.content, { maxTokens: 2048 });
         if (usage) {
           await ctx.runMutation(api.apiUsage.log, {
             source: "ai-tidy-all",

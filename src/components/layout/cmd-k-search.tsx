@@ -80,20 +80,20 @@ export function CmdKSearch({ open, onClose }: CmdKSearchProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <div className="relative w-full max-w-xl rounded-xl border border-[hsl(0_0%_18%)] bg-[hsl(0_0%_7%)] shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-[hsl(0_0%_12%)]">
-          <Brain className="w-4 h-4 text-[hsl(0_0%_40%)] shrink-0" />
+      <div className="relative w-full max-w-xl rounded-xl border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_10%)] shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[hsl(0_0%_22%)]">
+          <Brain className="w-4 h-4 text-[hsl(0_0%_68%)] shrink-0" />
           <input ref={inputRef} type="text" placeholder="Search everything…" value={query}
             onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-[hsl(0_0%_35%)] outline-none" />
-          <kbd className="text-[10px] bg-[hsl(0_0%_12%)] border border-[hsl(0_0%_18%)] rounded px-1.5 py-0.5 text-[hsl(0_0%_40%)]">ESC</kbd>
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-[hsl(0_0%_64%)] outline-none" />
+          <kbd className="text-[10px] bg-[hsl(0_0%_12%)] border border-[hsl(0_0%_28%)] rounded px-1.5 py-0.5 text-[hsl(0_0%_68%)]">ESC</kbd>
         </div>
         <div className="max-h-[400px] overflow-y-auto p-2">
           {query && results.length === 0 && (
-            <p className="text-center text-sm text-[hsl(0_0%_35%)] py-8">No results for &ldquo;{query}&rdquo;</p>
+            <p className="text-center text-sm text-[hsl(0_0%_64%)] py-8">No results for &ldquo;{query}&rdquo;</p>
           )}
           {!query && (
-            <p className="text-center text-sm text-[hsl(0_0%_35%)] py-8">Type to search across all modules…</p>
+            <p className="text-center text-sm text-[hsl(0_0%_64%)] py-8">Type to search across all modules…</p>
           )}
           {Object.entries(grouped).map(([type, items]) => {
             const Icon = TYPE_ICONS[type as keyof typeof TYPE_ICONS];
@@ -107,9 +107,9 @@ export function CmdKSearch({ open, onClose }: CmdKSearchProps) {
                   const flatIdx = results.indexOf(result);
                   return (
                     <button key={result.id} onClick={() => handleSelect(result)}
-                      className={`w-full text-left px-3 py-2 rounded-md transition-colors ${flatIdx === selected ? "bg-[hsl(263_90%_65%/0.15)] text-white" : "hover:bg-[hsl(0_0%_10%)] text-[hsl(0_0%_75%)]"}`}>
+                      className={`w-full text-left px-3 py-2 rounded-md transition-colors ${flatIdx === selected ? "bg-[hsl(263_90%_65%/0.15)] text-white" : "hover:bg-[hsl(0_0%_14%)] text-[hsl(0_0%_75%)]"}`}>
                       <p className="text-sm font-medium truncate">{result.title}</p>
-                      <p className="text-xs text-[hsl(0_0%_40%)] truncate mt-0.5">{result.subtitle}</p>
+                      <p className="text-xs text-[hsl(0_0%_68%)] truncate mt-0.5">{result.subtitle}</p>
                     </button>
                   );
                 })}

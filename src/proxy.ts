@@ -2,7 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/manifest.json",
+  "/icons/(.*)",
+]);
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) await auth.protect();
 });

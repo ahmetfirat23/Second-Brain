@@ -4,15 +4,15 @@
   :root {
     --background: 0 0% 4%;
     --foreground: 0 0% 95%;
-    --card: 0 0% 7%;
+    --card: 0 0% 9%;
     --card-foreground: 0 0% 95%;
-    --border: 0 0% 14%;
-    --input: 0 0% 12%;
+    --border: 0 0% 22%;
+    --input: 0 0% 18%;
     --primary: 263 90% 65%;
     --primary-foreground: 0 0% 100%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 50%;
-    --accent: 0 0% 10%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 68%;
+    --accent: 0 0% 13%;
     --accent-foreground: 0 0% 95%;
     --destructive: 0 70% 50%;
     --ring: 263 90% 65%;

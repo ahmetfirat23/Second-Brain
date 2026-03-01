@@ -5,16 +5,24 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { parseBrainDump, tidyText } from "@/lib/grok";
 import { searchTmdb } from "@/lib/tmdb";
 import { ConvexHttpClient } from "convex/browser";
+import { auth } from "@clerk/nextjs/server";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+async function getConvex() {
+  const authInstance = await auth();
+  const token = await authInstance.getToken({ template: "convex" });
+  const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+  if (token) client.setAuth(token);
+  return client;
+}
 
-async function logGrokUsage(source: string, inputTokens: number, outputTokens: number) {
+async function logUsage(convex: ConvexHttpClient, source: string, provider: string, inputTokens: number, outputTokens: number, model?: string) {
   try {
     await convex.mutation(api.apiUsage.log, {
       source,
-      provider: "grok",
+      provider,
       inputTokens,
       outputTokens,
+      ...(provider === "gpt" && model && { model }),
     });
   } catch {
     /* ignore */
@@ -43,13 +51,19 @@ export type TidyTextResult = {
 export async function saveBrainDump(content: string, title?: string) {
   const trimmed = content.trim();
   if (!trimmed) throw new Error("Empty content");
+  const convex = await getConvex();
   return convex.mutation(api.brainDumps.save, { content: trimmed, title: title?.trim() || undefined });
 }
 
 export async function tidyBrainDumpText(dumpId: string, content: string, title?: string): Promise<TidyTextResult> {
   try {
-    const { title: suggestedTitle, tidiedContent, usage } = await tidyText(content.trim(), title?.trim() || undefined);
-    if (usage) await logGrokUsage("brain-dump-tidy", usage.prompt_tokens, usage.completion_tokens);
+    const convex = await getConvex();
+    const chatCtx = await convex.query(api.chatContext.getSettings, {});
+    const provider = chatCtx?.aiProvider ?? "grok";
+    const model = chatCtx?.aiGptModel ?? "gpt-5-nano";
+    if (provider === "gpt" && !process.env.OPENAI_API_KEY) return { success: false, error: "OPENAI_API_KEY not set in .env.local" };
+    const { title: suggestedTitle, tidiedContent, usage } = await tidyText(content.trim(), title?.trim() || undefined, provider, model);
+    if (usage) await logUsage(convex, "brain-dump-tidy", provider, usage.prompt_tokens, usage.completion_tokens, provider === "gpt" ? model : undefined);
     await convex.mutation(api.brainDumps.setTidied, {
       id: dumpId as Id<"brainDumps">,
       tidiedContent,
@@ -63,8 +77,13 @@ export async function tidyBrainDumpText(dumpId: string, content: string, title?:
 
 export async function fanOutDump(dumpId: string, content: string): Promise<TidyResult> {
   try {
-    const { parsed, usage } = await parseBrainDump(content);
-    if (usage) await logGrokUsage("brain-dump-parse", usage.prompt_tokens, usage.completion_tokens);
+    const convex = await getConvex();
+    const chatCtx = await convex.query(api.chatContext.getSettings, {});
+    const provider = chatCtx?.aiProvider ?? "grok";
+    const model = chatCtx?.aiGptModel ?? "gpt-5-nano";
+    if (provider === "gpt" && !process.env.OPENAI_API_KEY) return { success: false, error: "OPENAI_API_KEY not set in .env.local" };
+    const { parsed, usage } = await parseBrainDump(content, provider, model);
+    if (usage) await logUsage(convex, "brain-dump-parse", provider, usage.prompt_tokens, usage.completion_tokens, provider === "gpt" ? model : undefined);
 
     // Enrich media with TMDB data (poster, overview, rating)
     const enrichedMedia = await Promise.all(
@@ -94,7 +113,7 @@ export async function fanOutDump(dumpId: string, content: string): Promise<TidyR
     enrichedMedia.length > 0 &&
       convex.mutation(api.mediaList.bulkCreate, {
         items: enrichedMedia.map((m) => ({ ...m, sourceDumpId: dumpIdTyped })),
-      }),
+      }).then((r) => r), // dupes silently skipped by bulkCreate
     parsed.knowledge_cards.length > 0 &&
       convex.mutation(api.knowledgeCards.bulkCreate, {
         items: parsed.knowledge_cards.map((k) => ({ ...k, sourceDumpId: dumpIdTyped })),
@@ -141,6 +160,7 @@ export async function fanOutDump(dumpId: string, content: string): Promise<TidyR
 }
 
 export async function uncheckDump(dumpId: string): Promise<void> {
+  const convex = await getConvex();
   await convex.mutation(api.brainDumps.uncheck, { id: dumpId as Id<"brainDumps"> });
 }
 
@@ -151,7 +171,7 @@ export async function updateDumpAndReGroup(
 ): Promise<TidyResult> {
   const id = dumpId as Id<"brainDumps">;
   try {
-    // Delete old extracted items
+    const convex = await getConvex();
     await Promise.all([
       convex.mutation(api.deadlines.removeBySourceDumpId, { sourceDumpId: id }),
       convex.mutation(api.mediaList.removeBySourceDumpId, { sourceDumpId: id }),
@@ -159,16 +179,12 @@ export async function updateDumpAndReGroup(
       convex.mutation(api.vault.removeBySourceDumpId, { sourceDumpId: id }),
       convex.mutation(api.goals.removeBySourceDumpId, { sourceDumpId: id }),
     ]);
-
-    // Update dump content
     await convex.mutation(api.brainDumps.update, {
       id,
       content: content.trim(),
       tidiedContent: content.trim(),
       title: title?.trim() || undefined,
     });
-
-    // Re-extract and insert with sourceDumpId
     return fanOutDump(dumpId, content.trim());
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Update & re-group failed" };
@@ -180,6 +196,7 @@ export async function tidyAllPending(): Promise<{
   totalAdded: TidyResult["summary"];
   errors: number;
 }> {
+  const convex = await getConvex();
   const pending = await convex.query(api.brainDumps.getPending, {});
 
   let errors = 0;

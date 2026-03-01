@@ -10,6 +10,8 @@ import { ConvexClientProvider } from "@/providers/convex-provider";
 export const metadata: Metadata = {
   title: "Mergen, the Second Brain",
   description: "Your personal knowledge base",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, title: "Mergen" },
 };
 
 export default function RootLayout({
@@ -32,7 +34,7 @@ export default function RootLayout({
         elements: {
           card: "shadow-2xl border border-[hsl(0,0%,14%)]",
           headerTitle: "text-white",
-          headerSubtitle: "text-[hsl(0,0%,45%)]",
+          headerSubtitle: "text-[hsl(0,0%,65%)]",
           formButtonPrimary: "bg-[hsl(263,90%,60%)] hover:bg-[hsl(263,90%,65%)]",
           footerActionLink: "text-[hsl(263,70%,70%)]",
         },

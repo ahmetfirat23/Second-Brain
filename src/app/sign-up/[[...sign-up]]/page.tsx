@@ -4,9 +4,9 @@ import Link from "next/link";
 export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-[hsl(0_0%_4%)] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-xl border border-[hsl(0_0%_14%)] bg-[hsl(0_0%_7%)] p-8 text-center shadow-xl">
+      <div className="w-full max-w-sm rounded-xl border border-[hsl(0_0%_24%)] bg-[hsl(0_0%_10%)] p-8 text-center shadow-xl">
         <h1 className="text-lg font-semibold text-white mb-2">Sign-ups disabled</h1>
-        <p className="text-sm text-[hsl(0_0%_50%)] mb-6">
+        <p className="text-sm text-[hsl(0_0%_72%)] mb-6">
           This app is private. New accounts cannot be created.
         </p>
         <Link

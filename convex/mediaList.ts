@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { requireUserIdentity } from "./auth";
 
 const categoryValidator = v.union(
@@ -31,6 +32,21 @@ export const list = query({
   },
 });
 
+type MediaRow = { _id: Id<"mediaList">; tmdbId?: number; title: string; watchedAt?: string; posterPath?: string; overview?: string; voteAverage?: number; genres?: string[]; director?: string; runtime?: number; tmdbMediaType?: string };
+
+function findExisting(list: MediaRow[], item: { tmdbId?: number; title: string }): MediaRow | undefined {
+  const norm = item.title.trim().toLowerCase();
+  return list.find((e) => {
+    if (item.tmdbId && e.tmdbId) return e.tmdbId === item.tmdbId;
+    return e.title.trim().toLowerCase() === norm;
+  });
+}
+
+// Keep for bulkCreate intra-batch dedup
+function isDuplicate(list: { tmdbId?: number; title: string }[], item: { tmdbId?: number; title: string }): boolean {
+  return !!findExisting(list as MediaRow[], item);
+}
+
 export const create = mutation({
   args: {
     title: v.string(),
@@ -40,9 +56,33 @@ export const create = mutation({
     ...tmdbFields,
   },
   handler: async (ctx, args) => {
+    await requireUserIdentity(ctx);
     const all = await ctx.db.query("mediaList").collect();
+    const existing = findExisting(all, args);
+
+    if (existing) {
+      if (existing.watchedAt) {
+        // Rewatch — move back to to-watch, keep previous review data intact
+        await ctx.db.patch(existing._id, { watchedAt: undefined });
+        return { id: existing._id, action: "rewatch" as const };
+      }
+      // Already in list but not watched — fill in any missing TMDB fields
+      const patch: Record<string, unknown> = {};
+      if (args.posterPath   && !existing.posterPath)   patch.posterPath   = args.posterPath;
+      if (args.overview     && !existing.overview)     patch.overview     = args.overview;
+      if (args.voteAverage  && !existing.voteAverage)  patch.voteAverage  = args.voteAverage;
+      if (args.genres?.length && !existing.genres?.length) patch.genres   = args.genres;
+      if (args.director     && !existing.director)     patch.director     = args.director;
+      if (args.runtime      && !existing.runtime)      patch.runtime      = args.runtime;
+      if (args.tmdbId       && !existing.tmdbId)       patch.tmdbId       = args.tmdbId;
+      if (args.tmdbMediaType && !existing.tmdbMediaType) patch.tmdbMediaType = args.tmdbMediaType;
+      if (Object.keys(patch).length > 0) await ctx.db.patch(existing._id, patch);
+      return { id: existing._id, action: "updated" as const };
+    }
+
     const maxOrder = all.reduce((m, i) => Math.max(m, i.sortOrder), 0);
-    return ctx.db.insert("mediaList", { ...args, sortOrder: maxOrder + 1 });
+    const id = await ctx.db.insert("mediaList", { ...args, sortOrder: maxOrder + 1 });
+    return { id, action: "created" as const };
   },
 });
 
@@ -72,13 +112,26 @@ export const bulkCreate = mutation({
   handler: async (ctx, { items }) => {
     await requireUserIdentity(ctx);
     const all = await ctx.db.query("mediaList").collect();
-    const baseOrder = all.reduce((m, i) => Math.max(m, i.sortOrder), 0) + 1;
-    const ids = [];
-    for (let i = 0; i < items.length; i++) {
-      const id = await ctx.db.insert("mediaList", { ...items[i], sortOrder: baseOrder + i });
+    let maxOrder = all.reduce((m, i) => Math.max(m, i.sortOrder), 0);
+
+    // Track titles/ids inserted in this batch to avoid intra-batch dupes
+    const batchSeen: { tmdbId?: number; title: string }[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ids: any[] = [];
+    let skipped = 0;
+
+    for (const item of items) {
+      if (isDuplicate(all, item) || isDuplicate(batchSeen, item)) {
+        skipped++;
+        continue;
+      }
+      maxOrder++;
+      const id = await ctx.db.insert("mediaList", { ...item, sortOrder: maxOrder });
       ids.push(id);
+      batchSeen.push({ tmdbId: item.tmdbId, title: item.title });
     }
-    return ids;
+
+    return { ids, skipped };
   },
 });
 

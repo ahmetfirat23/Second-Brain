@@ -212,11 +212,17 @@ export function LetterboxdImport() {
         watchedNotes: p.review || undefined,
         userRating: p.rating,
       }));
-      const ids = await bulkCreate({ items });
-      if (ids?.length) {
+      const result = await bulkCreate({ items });
+      const ids = result?.ids ?? [];
+      const skipped = result?.skipped ?? 0;
+      if (ids.length) {
         await scheduleEnrichment({ mediaIds: ids });
       }
-      toast.success(`Imported ${items.length} items (${stats.watched} watched, ${stats.watchlist} watchlist)${ids?.length ? ". TMDB metadata updating in background." : ""}`);
+      const skipNote = skipped > 0 ? ` · ${skipped} duplicate${skipped !== 1 ? "s" : ""} skipped` : "";
+      toast.success(
+        `Imported ${ids.length} item${ids.length !== 1 ? "s" : ""}${skipNote}`,
+        { description: ids.length ? "TMDB metadata updating in background." : undefined }
+      );
       setParsed(null);
       setShow(false);
       setSources([]);
@@ -241,7 +247,7 @@ export function LetterboxdImport() {
       />
       <button
         onClick={() => fileRef.current?.click()}
-        className="flex items-center gap-2 text-sm text-[hsl(0_0%_40%)] hover:text-violet-400 border border-dashed border-[hsl(0_0%_18%)] hover:border-violet-500/50 rounded-xl px-4 py-3 transition-all"
+        className="flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-violet-400 border border-dashed border-[hsl(0_0%_28%)] hover:border-violet-500/50 rounded-xl px-4 py-3 transition-all"
         title="Upload your Letterboxd export folder"
       >
         <FolderUp className="w-4 h-4" />
@@ -251,28 +257,28 @@ export function LetterboxdImport() {
       {show && parsed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={handleCancel}>
           <div
-            className="bg-[hsl(0_0%_9%)] border border-[hsl(0_0%_18%)] rounded-xl p-4 w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-[hsl(0_0%_13%)] border border-[hsl(0_0%_28%)] rounded-xl p-4 w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-white">Import from Letterboxd</h3>
-              <button onClick={handleCancel} className="p-1 rounded hover:bg-[hsl(0_0%_14%)] text-[hsl(0_0%_40%)]">
+              <button onClick={handleCancel} className="p-1 rounded hover:bg-[hsl(0_0%_14%)] text-[hsl(0_0%_75%)]">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-[hsl(0_0%_45%)] mb-3">
+            <p className="text-xs text-[hsl(0_0%_72%)] mb-3">
               Found: {sources.join(", ")} — {stats.watched} watched, {stats.watchlist} to watch
             </p>
-            <div className="flex-1 overflow-y-auto mb-4 max-h-48 rounded-lg bg-[hsl(0_0%_7%)] border border-[hsl(0_0%_13%)] p-2">
+            <div className="flex-1 overflow-y-auto mb-4 max-h-48 rounded-lg bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_13%)] p-2">
               {parsed.slice(0, 25).map((p, i) => (
                 <div key={i} className="text-xs text-[hsl(0_0%_70%)] py-0.5 truncate flex gap-2">
                   <span>{p.title}{p.year ? ` (${p.year})` : ""}</span>
-                  {p.rating != null && <span className="text-amber-400 shrink-0">★ {(p.rating / 2).toFixed(1)}</span>}
+                  {p.rating != null && <span className="text-amber-400 shrink-0">★ {p.rating}/10</span>}
                   {p.isWatchlist && <span className="text-sky-400 shrink-0">to watch</span>}
                 </div>
               ))}
               {parsed.length > 25 && (
-                <div className="text-xs text-[hsl(0_0%_45%)] py-1">… and {parsed.length - 25} more</div>
+                <div className="text-xs text-[hsl(0_0%_72%)] py-1">… and {parsed.length - 25} more</div>
               )}
             </div>
             <div className="flex gap-2">
@@ -284,7 +290,7 @@ export function LetterboxdImport() {
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Import {parsed.length} items
               </button>
-              <button onClick={handleCancel} className="px-4 py-2 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_60%)] text-sm">
+              <button onClick={handleCancel} className="px-4 py-2 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_75%)] text-sm">
                 Cancel
               </button>
             </div>

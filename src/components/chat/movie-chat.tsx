@@ -31,12 +31,13 @@ export function MovieChat() {
   const [showSettings, setShowSettings] = useState(false);
   const [enlarged, setEnlarged] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const chatCtx = useQuery(api.chatContext.getSettings);
   const setAutoIncludeEnabled = useMutation(api.chatContext.setAutoIncludeEnabled);
   const setIncludeRatings = useMutation(api.chatContext.setIncludeRatings);
   const setUseLimitMode = useMutation(api.chatContext.setUseLimitMode);
+  const setAiPreferences = useMutation(api.chatContext.setAiPreferences);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -51,8 +52,13 @@ export function MovieChat() {
       const text = e.detail?.text;
       if (text) {
         setOpen(true);
-        setInput((prev) => (prev ? `${prev}\n\n${text}` : text));
-        setTimeout(() => inputRef.current?.focus(), 150);
+        setInput((prev) => (prev ? `${prev}\n\n${text}\n` : `${text}\n`));
+        setTimeout(() => {
+          const el = inputRef.current;
+          if (!el) return;
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+        }, 150);
       }
     }
     window.addEventListener("movie-chat-insert", onInsert as EventListener);
@@ -78,12 +84,14 @@ export function MovieChat() {
     scrollToBottom();
 
     startTransition(async () => {
-      const history = [...messages, userMsg];
+      const history = [...messages];  // server action appends the current message itself
       const { content, error } = await sendMovieChatMessage(text, history);
       if (error) {
         setMessages((m) => [...m, { role: "assistant", content: `Hata: ${error}` }]);
       } else if (content) {
         setMessages((m) => [...m, { role: "assistant", content }]);
+      } else {
+        setMessages((m) => [...m, { role: "assistant", content: "Bir yanıt alınamadı. Tekrar deneyin." }]);
       }
       scrollToBottom();
     });
@@ -91,19 +99,19 @@ export function MovieChat() {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — left on mobile (avoids More menu on right), right on desktop */}
       <button
         onClick={() => { setOpen((o) => !o); if (!open) setTimeout(() => inputRef.current?.focus(), 200); }}
-        className="fixed bottom-5 right-5 z-40 w-12 h-12 rounded-full bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] shadow-lg shadow-[hsl(263_90%_60%/0.3)] flex items-center justify-center text-white transition-all hover:scale-105"
-        title="Ne izleyelim?"
+        className="fixed bottom-[72px] left-4 z-40 w-12 h-12 rounded-full bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] shadow-lg shadow-[hsl(263_90%_60%/0.3)] flex items-center justify-center text-white transition-all hover:scale-105 lg:bottom-5 lg:left-auto lg:right-5"
+        title="Movie chat"
       >
         {open ? <Minus className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
       </button>
 
-      {/* Chat panel */}
+      {/* Chat panel — anchored to same side as button */}
       {open && (
         <div
-          className="fixed bottom-20 right-5 z-40 flex flex-col rounded-xl border border-[hsl(0_0%_18%)] bg-[hsl(0_0%_7%)] shadow-2xl overflow-hidden transition-all duration-200"
+          className="fixed bottom-[140px] left-4 z-40 flex flex-col rounded-xl border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_10%)] shadow-2xl overflow-hidden transition-all duration-200 lg:bottom-20 lg:left-auto lg:right-5"
           style={{
             width: enlarged ? CHAT_SIZES.large.w : CHAT_SIZES.normal.w,
             height: enlarged ? CHAT_SIZES.large.h : CHAT_SIZES.normal.h,
@@ -111,7 +119,7 @@ export function MovieChat() {
             maxHeight: "75vh",
           }}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[hsl(0_0%_12%)] bg-[hsl(0_0%_6%)]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[hsl(0_0%_22%)] bg-[hsl(0_0%_13%)]">
             <span className="text-sm font-medium text-white flex items-center gap-2">
               <MessageCircle className="w-4 h-4 text-[hsl(263_70%_70%)]" />
               Ne izleyelim?
@@ -120,7 +128,7 @@ export function MovieChat() {
               {messages.length > 0 && (
                 <button
                   onClick={handleClear}
-                  className="p-1.5 rounded hover:bg-[hsl(0_0%_12%)] text-[hsl(0_0%_40%)] hover:text-red-400"
+                  className="p-1.5 rounded hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-red-400"
                   title="Sohbeti temizle"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -128,7 +136,7 @@ export function MovieChat() {
               )}
               <button
                 onClick={() => setEnlarged((e) => !e)}
-                className="p-1.5 rounded hover:bg-[hsl(0_0%_12%)] text-[hsl(0_0%_40%)] hover:text-white"
+                className="p-1.5 rounded hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-white"
                 title={enlarged ? "Küçült" : "Büyüt"}
               >
                 {enlarged ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -136,7 +144,7 @@ export function MovieChat() {
               <div className="relative">
                 <button
                   onClick={() => setShowSettings((s) => !s)}
-                  className="p-1.5 rounded hover:bg-[hsl(0_0%_12%)] text-[hsl(0_0%_40%)] hover:text-white"
+                  className="p-1.5 rounded hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-white"
                   title="Chat context"
                 >
                   <Settings2 className="w-4 h-4" />
@@ -144,14 +152,39 @@ export function MovieChat() {
                 {showSettings && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowSettings(false)} />
-                    <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-lg border border-[hsl(0_0%_18%)] bg-[hsl(0_0%_9%)] p-2 shadow-xl">
-                      <p className="text-[10px] text-[hsl(0_0%_45%)] mb-2">Prompt&apos;a ekle (opsiyonel)</p>
+                    <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_13%)] p-2 shadow-xl">
+                      <p className="text-[10px] text-[hsl(0_0%_72%)] mb-2">AI provider</p>
+                      <div className="flex gap-2 mb-2">
+                        {(["grok", "gpt"] as const).map((p) => (
+                          <button
+                            key={p}
+                            onClick={() => setAiPreferences({ aiProvider: p })}
+                            className={`flex-1 px-2 py-1 rounded text-xs font-medium capitalize ${(chatCtx?.aiProvider ?? "grok") === p ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)]"}`}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                      {(chatCtx?.aiProvider ?? "grok") === "gpt" && (
+                        <div className="flex gap-2 mb-2">
+                          {(["gpt-5-nano", "gpt-5-mini"] as const).map((m) => (
+                            <button
+                              key={m}
+                              onClick={() => setAiPreferences({ aiProvider: "gpt", aiGptModel: m })}
+                              className={`flex-1 px-2 py-1 rounded text-xs font-medium ${(chatCtx?.aiGptModel ?? "gpt-5-nano") === m ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)]"}`}
+                            >
+                              {m.includes("nano") ? "Nano" : "Mini"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-[hsl(0_0%_72%)] mb-2 mt-2">Prompt&apos;a ekle (opsiyonel)</p>
                       <label className="flex items-center gap-2 cursor-pointer mb-1.5">
                         <input
                           type="checkbox"
                           checked={chatCtx?.autoIncludeEnabled ?? false}
                           onChange={(e) => setAutoIncludeEnabled({ enabled: e.target.checked })}
-                          className="rounded border-[hsl(0_0%_25%)]"
+                          className="rounded border-[hsl(0_0%_34%)]"
                         />
                         <span className="text-xs text-[hsl(0_0%_75%)]">İzlediklerim</span>
                       </label>
@@ -161,7 +194,7 @@ export function MovieChat() {
                           checked={chatCtx?.includeRatings ?? true}
                           onChange={(e) => setIncludeRatings({ enabled: e.target.checked })}
                           disabled={!chatCtx?.autoIncludeEnabled}
-                          className="rounded border-[hsl(0_0%_25%)] disabled:opacity-50"
+                          className="rounded border-[hsl(0_0%_34%)] disabled:opacity-50"
                         />
                         <span className="text-xs text-[hsl(0_0%_75%)]">Skorlar</span>
                       </label>
@@ -170,16 +203,16 @@ export function MovieChat() {
                           type="checkbox"
                           checked={chatCtx?.useLimitMode ?? false}
                           onChange={(e) => setUseLimitMode({ enabled: e.target.checked })}
-                          className="rounded border-[hsl(0_0%_25%)]"
+                          className="rounded border-[hsl(0_0%_34%)]"
                         />
                         <span className="text-xs text-[hsl(0_0%_75%)]">Limit modu (yorumlu son 15)</span>
                       </label>
-                      <p className="text-[9px] text-[hsl(0_0%_40%)]">Watchlist + taste her zaman dahil.</p>
+                      <p className="text-[9px] text-[hsl(0_0%_68%)]">Watchlist + taste her zaman dahil.</p>
                     </div>
                   </>
                 )}
               </div>
-              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-[hsl(0_0%_12%)] text-[hsl(0_0%_40%)] hover:text-white">
+              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -201,45 +234,51 @@ export function MovieChat() {
                     className={`max-w-[85%] rounded-xl px-4 py-2.5 ${
                       m.role === "user"
                         ? "bg-[hsl(263_90%_60%/0.2)] border border-[hsl(263_90%_60%/0.3)] rounded-tr-sm"
-                        : "bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_14%)] rounded-tl-sm"
+                        : "bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_24%)] rounded-tl-sm"
                     }`}
                   >
-                    <p className="text-sm text-[hsl(0_0%_90%)] leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                    <p className="text-sm text-[hsl(0_0%_90%)] leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
                   </div>
                 </div>
               ))
             )}
             {isPending && (
               <div className="flex justify-start">
-                <div className="rounded-xl rounded-tl-sm bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_14%)] px-4 py-2.5">
-                  <span className="text-sm text-[hsl(0_0%_50%)]">Düşünüyorum…</span>
+                <div className="rounded-xl rounded-tl-sm bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_24%)] px-4 py-2.5">
+                  <span className="text-sm text-[hsl(0_0%_72%)]">Düşünüyorum…</span>
                 </div>
               </div>
             )}
             <div ref={scrollRef} />
           </div>
 
-          <div className="p-3 border-t border-[hsl(0_0%_12%)]">
-            <form
-              onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-              className="flex items-center gap-2"
-            >
-              <input
+          <div className="p-3 border-t border-[hsl(0_0%_22%)]">
+            <div className="flex items-end gap-2">
+              <textarea
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Ne izleyelim? Hangi tür?"
                 disabled={isPending}
-                className="flex-1 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_35%)] outline-none focus:border-[hsl(263_90%_60%/0.5)] disabled:opacity-50"
+                rows={1}
+                className="flex-1 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_64%)] outline-none focus:border-[hsl(263_90%_60%/0.5)] disabled:opacity-50 resize-none max-h-28 overflow-y-auto"
+                style={{ fieldSizing: "content" } as React.CSSProperties}
               />
               <button
-                type="submit"
+                type="button"
+                onClick={handleSend}
                 disabled={!input.trim() || isPending}
-                className="p-2 rounded-lg bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] disabled:opacity-40 text-white transition-colors"
+                className="p-2 rounded-lg bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] disabled:opacity-40 text-white transition-colors shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>
-            </form>
+            </div>
           </div>
         </div>
       )}

@@ -43,6 +43,8 @@ export const setTidied = mutation({
   },
   handler: async (ctx, { id, tidiedContent, title }) => {
     await requireUserIdentity(ctx);
+    const doc = await ctx.db.get(id);
+    if (!doc) return;
     const patch: Record<string, unknown> = { tidiedContent };
     if (title) patch.title = title;
     await ctx.db.patch(id, patch);
@@ -53,6 +55,8 @@ export const markTidied = mutation({
   args: { id: v.id("brainDumps") },
   handler: async (ctx, { id }) => {
     await requireUserIdentity(ctx);
+    const doc = await ctx.db.get(id);
+    if (!doc) return;
     await ctx.db.patch(id, { tidiedAt: new Date().toISOString() });
   },
 });
@@ -61,6 +65,8 @@ export const uncheck = mutation({
   args: { id: v.id("brainDumps") },
   handler: async (ctx, { id }) => {
     await requireUserIdentity(ctx);
+    const doc = await ctx.db.get(id);
+    if (!doc) return;
     await ctx.db.patch(id, { tidiedAt: undefined });
   },
 });
@@ -84,6 +90,8 @@ export const update = mutation({
   },
   handler: async (ctx, { id, content, tidiedContent, title }) => {
     await requireUserIdentity(ctx);
+    const doc = await ctx.db.get(id);
+    if (!doc) return;
     const patch: Record<string, unknown> = {};
     if (content !== undefined) patch.content = content;
     if (tidiedContent !== undefined) patch.tidiedContent = tidiedContent;

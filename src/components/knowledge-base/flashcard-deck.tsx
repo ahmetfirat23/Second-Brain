@@ -40,14 +40,14 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-xl mx-auto">
-      <div className="w-full bg-[hsl(0_0%_7%)] border border-[hsl(0_0%_13%)] rounded-2xl p-8 cursor-pointer select-none min-h-[200px] flex items-center justify-center"
+      <div className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_13%)] rounded-2xl p-8 cursor-pointer select-none min-h-[200px] flex items-center justify-center"
         onClick={() => setFlipped((f) => !f)}>
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[hsl(0_0%_30%)] mb-4">{flipped ? "Answer" : "Question"}</p>
+          <p className="text-[10px] uppercase tracking-widest text-[hsl(0_0%_68%)] mb-4">{flipped ? "Answer" : "Question"}</p>
           <div className="text-lg text-white leading-relaxed">
             <MathContent text={flipped ? card.back : card.front} />
           </div>
-          {!flipped && <p className="mt-4 text-xs text-[hsl(0_0%_30%)]">Click to reveal</p>}
+          {!flipped && <p className="mt-4 text-xs text-[hsl(0_0%_68%)]">Click to reveal</p>}
         </div>
       </div>
       {flipped ? (
@@ -60,7 +60,7 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
           ))}
         </div>
       ) : (
-        <p className="text-xs text-[hsl(0_0%_30%)]">Interval: {card.interval}d · Ease: {card.easeFactor.toFixed(1)}</p>
+        <p className="text-xs text-[hsl(0_0%_68%)]">Interval: {card.interval}d · Ease: {card.easeFactor.toFixed(1)}</p>
       )}
     </div>
   );
@@ -82,21 +82,21 @@ function CardEditor({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="bg-[hsl(0_0%_7%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3 mb-6">
+    <div className="bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3 mb-6">
       <h3 className="text-sm font-medium text-white">New Card</h3>
-      <textarea value={front} onChange={(e) => setFront(e.target.value)} rows={2} placeholder="Front — question or concept. Supports $LaTeX$" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_30%)] outline-none resize-none font-mono" />
-      <textarea value={back} onChange={(e) => setBack(e.target.value)} rows={2} placeholder="Back — answer or definition. Supports $$LaTeX$$" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_30%)] outline-none resize-none font-mono" />
+      <textarea value={front} onChange={(e) => setFront(e.target.value)} rows={2} placeholder="Front — question or concept. Supports $LaTeX$" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_68%)] outline-none resize-none font-mono" />
+      <textarea value={back} onChange={(e) => setBack(e.target.value)} rows={2} placeholder="Back — answer or definition. Supports $$LaTeX$$" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_68%)] outline-none resize-none font-mono" />
       {(front || back) && (
         <div className="bg-[hsl(0_0%_5%)] rounded-lg p-3 text-xs">
-          <p className="text-[hsl(0_0%_30%)] mb-1">Preview:</p>
+          <p className="text-[hsl(0_0%_68%)] mb-1">Preview:</p>
           {front && <p className="text-white mb-1"><MathContent text={front} /></p>}
-          {back && <p className="text-[hsl(0_0%_60%)]"><MathContent text={back} /></p>}
+          {back && <p className="text-[hsl(0_0%_68%)]"><MathContent text={back} /></p>}
         </div>
       )}
       <div className="flex gap-2">
         <button onClick={handleSubmit} disabled={!front.trim() || !back.trim() || isPending}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] disabled:opacity-40 text-white text-sm font-medium"><Check className="w-3.5 h-3.5" /> Add Card</button>
-        <button onClick={onDone} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_60%)] text-sm"><X className="w-3.5 h-3.5" /> Cancel</button>
+        <button onClick={onDone} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_68%)] text-sm"><X className="w-3.5 h-3.5" /> Cancel</button>
       </div>
     </div>
   );
@@ -130,19 +130,19 @@ export function FlashcardDeck() {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="flex gap-2 flex-1">
           <button onClick={() => { setMode("all"); setShowAdd(false); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === "all" ? "bg-[hsl(0_0%_12%)] text-white" : "text-[hsl(0_0%_45%)] hover:text-white"}`}>
-            <Layers className="w-4 h-4" /> All Cards <span className="text-[hsl(0_0%_35%)] font-normal">({allCards.length})</span>
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === "all" ? "bg-[hsl(0_0%_12%)] text-white" : "text-[hsl(0_0%_72%)] hover:text-white"}`}>
+            <Layers className="w-4 h-4" /> All Cards <span className="text-[hsl(0_0%_64%)] font-normal">({allCards.length})</span>
           </button>
           <button onClick={() => { setMode("review"); setReviewIdx(0); setShowAdd(false); }}
             disabled={dueCards.length === 0}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 ${mode === "review" ? "bg-[hsl(263_90%_60%/0.2)] text-[hsl(263_70%_75%)]" : "text-[hsl(0_0%_45%)] hover:text-white"}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 ${mode === "review" ? "bg-[hsl(263_90%_60%/0.2)] text-[hsl(263_70%_75%)]" : "text-[hsl(0_0%_72%)] hover:text-white"}`}>
             <BrainCircuit className="w-4 h-4" /> Review
             {dueCards.length > 0 && <span className="bg-[hsl(263_90%_60%)] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{dueCards.length}</span>}
           </button>
         </div>
         {!showAdd && mode === "all" && (
           <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 text-sm text-[hsl(0_0%_40%)] hover:text-white border border-dashed border-[hsl(0_0%_18%)] hover:border-[hsl(0_0%_30%)] rounded-lg px-4 py-2 transition-all">
+            className="flex items-center gap-2 text-sm text-[hsl(0_0%_68%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-lg px-4 py-2 transition-all">
             <Plus className="w-4 h-4" /> New Card
           </button>
         )}
@@ -153,18 +153,18 @@ export function FlashcardDeck() {
       {mode === "review" && (
         <div>
           {dueCards.length === 0 ? (
-            <div className="text-center py-20 text-[hsl(0_0%_30%)]">
+            <div className="text-center py-20 text-[hsl(0_0%_68%)]">
               <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">All caught up! No cards due for review.</p>
             </div>
           ) : currentCard ? (
             <div>
               <div className="flex items-center justify-between mb-6">
-                <p className="text-xs text-[hsl(0_0%_30%)]">Progress: {reviewProgress}</p>
+                <p className="text-xs text-[hsl(0_0%_68%)]">Progress: {reviewProgress}</p>
                 <div className="flex-1 max-w-xs mx-4 bg-[hsl(0_0%_12%)] rounded-full h-1.5">
                   <div className="bg-[hsl(263_90%_60%)] h-1.5 rounded-full transition-all" style={{ width: `${(reviewIdx / dueCards.length) * 100}%` }} />
                 </div>
-                <button onClick={() => setMode("all")} className="text-xs text-[hsl(0_0%_35%)] hover:text-white">Exit</button>
+                <button onClick={() => setMode("all")} className="text-xs text-[hsl(0_0%_64%)] hover:text-white">Exit</button>
               </div>
               <ReviewCard card={currentCard} onRate={handleRate} />
             </div>
@@ -175,7 +175,7 @@ export function FlashcardDeck() {
       {mode === "all" && (
         <div>
           {allCards.length === 0 ? (
-            <div className="text-center py-20 text-[hsl(0_0%_30%)]">
+            <div className="text-center py-20 text-[hsl(0_0%_68%)]">
               <BrainCircuit className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">No cards yet. Add one above or use Brain Dump.</p>
             </div>
@@ -209,33 +209,33 @@ function CardRow({ card, onRemove }: { card: Card; onRemove: () => void }) {
   }
 
   return (
-    <div className={`group relative bg-[hsl(0_0%_7%)] border rounded-xl p-4 hover:border-[hsl(0_0%_18%)] transition-all ${isDue ? "border-[hsl(263_60%_40%/0.4)]" : "border-[hsl(0_0%_12%)]"}`}>
+    <div className={`group relative bg-[hsl(0_0%_10%)] border rounded-xl p-4 hover:border-[hsl(0_0%_28%)] transition-all ${isDue ? "border-[hsl(263_60%_40%/0.4)]" : "border-[hsl(0_0%_22%)]"}`}>
       {editing ? (
         <div className="space-y-2">
           <textarea value={front} onChange={(e) => setFront(e.target.value)} rows={2} className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.4)] rounded-lg px-3 py-1.5 text-sm text-white outline-none resize-none font-mono" />
-          <textarea value={back} onChange={(e) => setBack(e.target.value)} rows={2} className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-1.5 text-sm text-[hsl(0_0%_70%)] outline-none resize-none font-mono" />
+          <textarea value={back} onChange={(e) => setBack(e.target.value)} rows={2} className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-[hsl(0_0%_70%)] outline-none resize-none font-mono" />
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={isPending} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(263_90%_60%)] text-white text-xs font-medium"><Check className="w-3 h-3" /> Save</button>
-            <button onClick={() => { setFront(card.front); setBack(card.back); setEditing(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_60%)] text-xs"><X className="w-3 h-3" /> Cancel</button>
+            <button onClick={() => { setFront(card.front); setBack(card.back); setEditing(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_68%)] text-xs"><X className="w-3 h-3" /> Cancel</button>
           </div>
         </div>
       ) : (
         <div className="flex gap-4 items-start pr-16">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white mb-1"><MathContent text={card.front} /></p>
-            <p className="text-sm text-[hsl(0_0%_55%)]"><MathContent text={card.back} /></p>
+            <p className="text-sm text-[hsl(0_0%_64%)]"><MathContent text={card.back} /></p>
           </div>
           <div className="text-right shrink-0">
             {isDue ? <span className="text-[10px] font-semibold text-[hsl(263_70%_70%)] uppercase tracking-wider">Due</span>
-              : <span className="text-[10px] text-[hsl(0_0%_30%)]">{card.nextReview}</span>}
-            <p className="text-[10px] text-[hsl(0_0%_25%)] mt-0.5">×{card.repetitions}</p>
+              : <span className="text-[10px] text-[hsl(0_0%_68%)]">{card.nextReview}</span>}
+            <p className="text-[10px] text-[hsl(0_0%_68%)] mt-0.5">×{card.repetitions}</p>
           </div>
         </div>
       )}
       {!editing && (
         <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => setEditing(true)} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_12%)] text-[hsl(0_0%_40%)] hover:text-white"><Pencil className="w-3.5 h-3.5" /></button>
-          <button onClick={onRemove} className="p-1.5 rounded-md hover:bg-red-900/40 text-[hsl(0_0%_40%)] hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button onClick={() => setEditing(true)} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-white"><Pencil className="w-3.5 h-3.5" /></button>
+          <button onClick={onRemove} className="p-1.5 rounded-md hover:bg-red-900/40 text-[hsl(0_0%_68%)] hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       )}
     </div>

@@ -15,8 +15,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { differenceInDays, parseISO } from "date-fns";
 import {
   AlertTriangle, Check, ChevronDown, ChevronRight,
-  GripVertical, Pencil, Plus, Trash2, X,
+  GripVertical, MoreVertical, Pencil, Plus, Trash2, X,
 } from "lucide-react";
+
+const STATUS_SHORT = { not_started: "New", in_progress: "Active", done: "Done" } as const;
 import { useState, useTransition } from "react";
 
 type Goal = {
@@ -83,9 +85,14 @@ function GoalCard({ goal }: { goal: Goal }) {
   const [editImportance, setEditImportance] = useState<Goal["importance"]>(goal.importance);
   const [editSize, setEditSize] = useState<Goal["size"]>(goal.size);
   const [isPending, startTransition] = useTransition();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(!!goal.description);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const { overdue, days } = overdueInfo(goal);
+
+  function toggleExpanded() {
+    if (goal.description) setExpanded((v) => !v);
+  }
 
   function handleStatusCycle() {
     setStatus({ id: goal._id, status: STATUS_NEXT[goal.status] });
@@ -101,59 +108,95 @@ function GoalCard({ goal }: { goal: Goal }) {
   return (
     <div
       ref={setNodeRef} style={style}
-      className={`group relative bg-[hsl(0_0%_7%)] border rounded-xl transition-all ${
-        overdue ? "border-red-800/60 shadow-[inset_3px_0_0_hsl(0_80%_40%/0.6)]" : "border-[hsl(0_0%_12%)] hover:border-[hsl(0_0%_17%)]"
+      className={`group relative bg-[hsl(0_0%_10%)] border rounded-xl transition-all ${
+        overdue ? "border-red-800/60 shadow-[inset_3px_0_0_hsl(0_80%_40%/0.6)]" : "border-[hsl(0_0%_22%)] hover:border-[hsl(0_0%_17%)]"
       } ${isDragging ? "z-50 shadow-2xl" : ""}`}
     >
       {/* Drag handle */}
       <div {...attributes} {...listeners}
-        className="absolute left-2 top-1/2 -translate-y-1/2 text-[hsl(0_0%_22%)] hover:text-[hsl(0_0%_40%)] cursor-grab active:cursor-grabbing">
+        className="absolute left-2 top-1/2 -translate-y-1/2 text-[hsl(0_0%_68%)] hover:text-[hsl(0_0%_70%)] cursor-grab active:cursor-grabbing">
         <GripVertical className="w-4 h-4" />
       </div>
 
       {!editing ? (
-        <div className="pl-8 pr-3 py-3">
-          <div className="flex items-start gap-3">
-            {/* Status button */}
-            <button onClick={handleStatusCycle}
-              className={`shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border transition-colors mt-0.5 ${STATUS_STYLES[goal.status]}`}>
-              {STATUS_LABELS[goal.status]}
+        /* pr-8 reserves space for the absolutely-positioned action button so title never overlaps it */
+        <div
+          onClick={toggleExpanded}
+          className={`relative pl-8 pr-8 py-2.5 sm:py-3 ${goal.description ? "cursor-pointer" : ""}`}
+        >
+          {/* Title — always full width */}
+          <p className={`text-sm font-medium leading-snug ${goal.status === "done" ? "line-through text-[hsl(0_0%_68%)]" : "text-white"}`}>
+            {goal.title}
+          </p>
+
+          {/* Expanded description */}
+          {expanded && goal.description && (
+            <p className="mt-1 text-xs text-[hsl(0_0%_72%)] leading-relaxed">{goal.description}</p>
+          )}
+
+          {/* Meta row — status + size + importance on one compact line */}
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleStatusCycle(); }}
+              className={`text-[9px] font-medium px-1.5 py-0.5 rounded border transition-colors ${STATUS_STYLES[goal.status]}`}
+              title={STATUS_LABELS[goal.status]}
+            >
+              {STATUS_SHORT[goal.status]}
             </button>
+            <span className={`text-[9px] font-medium uppercase px-1 py-0.5 rounded border ${SIZE_COLORS[goal.size]}`}>
+              {SIZE_LABELS[goal.size]}
+            </span>
+            <ImportanceDots value={goal.importance} />
+            {overdue && (
+              <span className="flex items-center gap-0.5 text-[9px] font-medium text-red-400">
+                <AlertTriangle className="w-2.5 h-2.5" />{days}d
+              </span>
+            )}
+          </div>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <button onClick={() => setExpanded((v) => !v)} className="text-left w-full">
-                <p className={`text-sm font-medium leading-snug ${goal.status === "done" ? "line-through text-[hsl(0_0%_40%)]" : "text-white"}`}>
-                  {goal.title}
-                </p>
-              </button>
-              {expanded && goal.description && (
-                <p className="mt-1 text-xs text-[hsl(0_0%_50%)] leading-relaxed">{goal.description}</p>
-              )}
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <ImportanceDots value={goal.importance} />
-                <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${SIZE_COLORS[goal.size]}`}>
-                  {SIZE_LABELS[goal.size]}
-                </span>
-                {overdue && (
-                  <span className="flex items-center gap-1 text-[10px] font-medium text-red-400">
-                    <AlertTriangle className="w-3 h-3" />
-                    {days}d overdue
-                  </span>
-                )}
-              </div>
-            </div>
+          {/* Actions — absolutely positioned top-right, never takes layout space */}
+          {/* Desktop: pencil + trash on hover */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-2 right-1 hidden lg:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <button onClick={() => setEditing(true)} className="p-1 rounded hover:bg-[hsl(0_0%_20%)] text-[hsl(0_0%_68%)] hover:text-white">
+              <Pencil className="w-3 h-3" />
+            </button>
+            <button onClick={() => { if (confirm("Delete this goal?")) removeGoal({ id: goal._id }); }}
+              className="p-1 rounded hover:bg-red-900/40 text-[hsl(0_0%_68%)] hover:text-red-400">
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <button onClick={() => setEditing(true)} className="p-1.5 rounded-md hover:bg-[hsl(0_0%_12%)] text-[hsl(0_0%_40%)] hover:text-white">
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => { if (confirm("Delete this goal?")) removeGoal({ id: goal._id }); }}
-                className="p-1.5 rounded-md hover:bg-red-900/40 text-[hsl(0_0%_40%)] hover:text-red-400">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* Mobile: single ⋮ button */}
+          <div className="absolute top-2 right-1 lg:hidden" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="p-1.5 rounded text-[hsl(0_0%_64%)] hover:text-white hover:bg-[hsl(0_0%_20%)]"
+              aria-label="Actions"
+            >
+              <MoreVertical className="w-3.5 h-3.5" />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 w-36 rounded-lg border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_13%)] py-1 shadow-xl">
+                  <button
+                    onClick={() => { setMenuOpen(false); setEditing(true); }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[hsl(0_0%_85%)] hover:bg-[hsl(0_0%_20%)]"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    onClick={() => { setMenuOpen(false); if (confirm("Delete this goal?")) removeGoal({ id: goal._id }); }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-red-900/30"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -162,20 +205,20 @@ function GoalCard({ goal }: { goal: Goal }) {
             className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.4)] rounded-lg px-3 py-1.5 text-sm text-white outline-none" />
           <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2}
             placeholder="Description (optional)"
-            className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-1.5 text-sm text-[hsl(0_0%_70%)] placeholder:text-[hsl(0_0%_30%)] outline-none resize-none" />
+            className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-[hsl(0_0%_70%)] placeholder:text-[hsl(0_0%_72%)] outline-none resize-none" />
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[hsl(0_0%_40%)]">Importance:</span>
+              <span className="text-xs text-[hsl(0_0%_68%)]">Importance:</span>
               {([1, 2, 3, 4, 5] as const).map((n) => (
                 <button key={n} onClick={() => setEditImportance(n)}
-                  className={`w-6 h-6 rounded text-xs font-medium transition-colors ${n === editImportance ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_50%)]"}`}>{n}</button>
+                  className={`w-6 h-6 rounded text-xs font-medium transition-colors ${n === editImportance ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)]"}`}>{n}</button>
               ))}
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[hsl(0_0%_40%)]">Size:</span>
+              <span className="text-xs text-[hsl(0_0%_68%)]">Size:</span>
               {(["short", "medium", "long"] as const).map((s) => (
                 <button key={s} onClick={() => setEditSize(s)}
-                  className={`px-2 py-0.5 rounded text-xs font-medium transition-colors capitalize ${s === editSize ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_50%)]"}`}>{s}</button>
+                  className={`px-2 py-0.5 rounded text-xs font-medium transition-colors capitalize ${s === editSize ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)]"}`}>{s}</button>
               ))}
             </div>
           </div>
@@ -184,7 +227,7 @@ function GoalCard({ goal }: { goal: Goal }) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(263_90%_60%)] text-white text-xs font-medium disabled:opacity-40">
               <Check className="w-3 h-3" /> Save
             </button>
-            <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_60%)] text-xs">
+            <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_68%)] text-xs">
               <X className="w-3 h-3" /> Cancel
             </button>
           </div>
@@ -211,32 +254,32 @@ function AddGoalForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="bg-[hsl(0_0%_7%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3 mb-4">
+    <div className="bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3 mb-4">
       <h3 className="text-sm font-medium text-white">New Goal</h3>
       <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
         placeholder="What do you want to do? (be vague, be specific, whatever)"
-        className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_28%)] outline-none focus:border-[hsl(263_90%_60%/0.5)]" />
+        className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_58%)] outline-none focus:border-[hsl(263_90%_60%/0.5)]" />
       <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
         placeholder="More context (optional)"
-        className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_18%)] rounded-lg px-3 py-2 text-sm text-[hsl(0_0%_70%)] placeholder:text-[hsl(0_0%_28%)] outline-none resize-none" />
+        className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-[hsl(0_0%_70%)] placeholder:text-[hsl(0_0%_58%)] outline-none resize-none" />
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-[hsl(0_0%_40%)]">Importance:</span>
+          <span className="text-xs text-[hsl(0_0%_68%)]">Importance:</span>
           {([1, 2, 3, 4, 5] as const).map((n) => (
             <button key={n} onClick={() => setImportance(n)}
-              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${n === importance ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_50%)] hover:bg-[hsl(0_0%_16%)]"}`}>{n}</button>
+              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${n === importance ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)] hover:bg-[hsl(0_0%_20%)]"}`}>{n}</button>
           ))}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-[hsl(0_0%_40%)]">Size:</span>
+          <span className="text-xs text-[hsl(0_0%_68%)]">Size:</span>
           {(["short", "medium", "long"] as const).map((s) => (
             <button key={s} onClick={() => setSize(s)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${s === size ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_50%)] hover:bg-[hsl(0_0%_16%)]"}`}>{s}</button>
+              className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${s === size ? "bg-[hsl(263_90%_60%)] text-white" : "bg-[hsl(0_0%_12%)] text-[hsl(0_0%_72%)] hover:bg-[hsl(0_0%_20%)]"}`}>{s}</button>
           ))}
         </div>
       </div>
-      <p className="text-[10px] text-[hsl(0_0%_30%)]">
+      <p className="text-[10px] text-[hsl(0_0%_72%)]">
         Size sets overdue warning: short = 5d, medium = 10d, long = 15d after starting
       </p>
       <div className="flex gap-2">
@@ -244,7 +287,7 @@ function AddGoalForm({ onDone }: { onDone: () => void }) {
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[hsl(263_90%_60%)] hover:bg-[hsl(263_90%_65%)] disabled:opacity-40 text-white text-sm font-medium">
           <Check className="w-3.5 h-3.5" /> Add Goal
         </button>
-        <button onClick={onDone} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_60%)] text-sm">
+        <button onClick={onDone} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[hsl(0_0%_12%)] text-[hsl(0_0%_68%)] text-sm">
           <X className="w-3.5 h-3.5" /> Cancel
         </button>
       </div>
@@ -252,13 +295,26 @@ function AddGoalForm({ onDone }: { onDone: () => void }) {
   );
 }
 
+const FILTER_SIZE_OPTIONS = ["all", "short", "medium", "long"] as const;
+const FILTER_IMPORTANCE_OPTIONS = ["all", 1, 2, 3, 4, 5] as const;
+const FILTER_STATUS_OPTIONS = ["all", "not_started", "in_progress"] as const;
+
 export function GoalsList() {
   const allGoals = useQuery(api.goals.list) ?? [];
   const reorderGoals = useMutation(api.goals.reorder);
   const [showAdd, setShowAdd] = useState(false);
   const [showDone, setShowDone] = useState(false);
+  const [filterSize, setFilterSize] = useState<typeof FILTER_SIZE_OPTIONS[number]>("all");
+  const [filterImportance, setFilterImportance] = useState<typeof FILTER_IMPORTANCE_OPTIONS[number]>("all");
+  const [filterStatus, setFilterStatus] = useState<typeof FILTER_STATUS_OPTIONS[number]>("all");
 
-  const activeGoals = allGoals.filter((g) => g.status !== "done");
+  const activeGoalsRaw = allGoals.filter((g) => g.status !== "done");
+  const activeGoals = activeGoalsRaw.filter((g) => {
+    if (filterSize !== "all" && g.size !== filterSize) return false;
+    if (filterImportance !== "all" && g.importance !== filterImportance) return false;
+    if (filterStatus !== "all" && g.status !== filterStatus) return false;
+    return true;
+  });
   const doneGoals = allGoals.filter((g) => g.status === "done");
   const overdueCount = activeGoals.filter((g) => overdueInfo(g as Goal).overdue).length;
 
@@ -272,15 +328,56 @@ export function GoalsList() {
     if (!over || active.id === over.id) return;
     const oldIdx = activeGoals.findIndex((g) => g._id === active.id);
     const newIdx = activeGoals.findIndex((g) => g._id === over.id);
-    const reordered = arrayMove(activeGoals, oldIdx, newIdx);
-    reorderGoals({ orderedIds: reordered.map((g) => g._id) });
+    const reorderedFiltered = arrayMove(activeGoals, oldIdx, newIdx);
+    const filteredSet = new Set(activeGoals.map((g) => g._id));
+    let rfIdx = 0;
+    const newOrdered = activeGoalsRaw.map((g) =>
+      filteredSet.has(g._id) ? reorderedFiltered[rfIdx++]! : g
+    );
+    reorderGoals({ orderedIds: newOrdered.map((g) => g._id) });
   }
 
   return (
     <div>
+      {/* Filters */}
+      {activeGoalsRaw.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs text-[hsl(0_0%_64%)]">Size</span>
+          <select
+            value={filterSize}
+            onChange={(e) => setFilterSize(e.target.value as typeof filterSize)}
+            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
+          >
+            {FILTER_SIZE_OPTIONS.map((o) => (
+              <option key={o} value={o}>{o === "all" ? "All" : SIZE_LABELS[o as Goal["size"]]}</option>
+            ))}
+          </select>
+          <span className="text-xs text-[hsl(0_0%_64%)]">Importance</span>
+          <select
+            value={filterImportance}
+            onChange={(e) => setFilterImportance(e.target.value === "all" ? "all" : Number(e.target.value) as typeof filterImportance)}
+            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
+          >
+            {FILTER_IMPORTANCE_OPTIONS.map((o) => (
+              <option key={o} value={o}>{o === "all" ? "All" : o}</option>
+            ))}
+          </select>
+          <span className="text-xs text-[hsl(0_0%_64%)]">Status</span>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
+            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
+          >
+            {FILTER_STATUS_OPTIONS.map((o) => (
+              <option key={o} value={o}>{o === "all" ? "All" : STATUS_LABELS[o as Goal["status"]]}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Stats bar */}
       {activeGoals.length > 0 && (
-        <div className="flex items-center gap-4 mb-5 text-xs text-[hsl(0_0%_40%)]">
+        <div className="flex items-center gap-4 mb-5 text-xs text-[hsl(0_0%_68%)]">
           <span>{activeGoals.filter((g) => g.status === "in_progress").length} in progress</span>
           <span>{activeGoals.filter((g) => g.status === "not_started").length} not started</span>
           {overdueCount > 0 && (
@@ -293,7 +390,7 @@ export function GoalsList() {
 
       {!showAdd ? (
         <button onClick={() => setShowAdd(true)}
-          className="mb-4 flex items-center gap-2 text-sm text-[hsl(0_0%_40%)] hover:text-white border border-dashed border-[hsl(0_0%_18%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-3 w-full transition-all">
+          className="mb-4 flex items-center gap-2 text-sm text-[hsl(0_0%_68%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-3 w-full transition-all">
           <Plus className="w-4 h-4" /> Add Goal
         </button>
       ) : (
@@ -301,7 +398,7 @@ export function GoalsList() {
       )}
 
       {activeGoals.length === 0 && !showAdd ? (
-        <div className="text-center py-20 text-[hsl(0_0%_30%)]">
+        <div className="text-center py-20 text-[hsl(0_0%_72%)]">
           <p className="text-sm">No goals yet. Add something you want to do — big or small.</p>
         </div>
       ) : (
@@ -319,7 +416,7 @@ export function GoalsList() {
         <div className="mt-6">
           <button
             onClick={() => setShowDone((v) => !v)}
-            className="flex items-center gap-2 text-xs font-medium text-[hsl(0_0%_30%)] uppercase tracking-wider hover:text-[hsl(0_0%_50%)] transition-colors mb-3"
+            className="flex items-center gap-2 text-xs font-medium text-[hsl(0_0%_72%)] uppercase tracking-wider hover:text-[hsl(0_0%_72%)] transition-colors mb-3"
           >
             {showDone ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             Done ({doneGoals.length})

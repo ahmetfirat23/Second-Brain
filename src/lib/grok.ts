@@ -28,15 +28,25 @@ export type ParsedBrainDump = {
 
 const FAN_OUT_PROMPT = `You are a personal knowledge organizer. Parse the following brain dump text and return ONLY valid JSON with no markdown or explanation.
 
-Extract items into these categories:
-- deadlines: jobs, lectures, meetings, or anything with a date/deadline. Use ISO date format (YYYY-MM-DD) for deadline. Category must be "Job", "Lecture", or "Other".
-- media: shows, movies, anime, sitcoms, or any entertainment to watch. Category must be "Sitcom", "Anime", "Film", "Documentary", "Series", or "Other".
-- knowledge_cards: technical facts, formulas, definitions, or any "stuff I learned". front = question/concept, back = answer/explanation. Support LaTeX in back field using $...$ notation.
-- vault: any URLs, links, or web resources. Urgency 1-5 (5 = most urgent).
-- goals: things to do, objectives, resolutions, habits to build. importance 1-5 (5 = most important). size: "short" (quick task), "medium" (project), "long" (big goal).
+Extract items into these EXACT categories with EXACTLY these field names (no deviations):
 
-Return ONLY this exact JSON structure with no extra text:
-{"deadlines":[],"media":[],"knowledge_cards":[],"vault":[],"goals":[]}`;
+deadlines — appointments, tasks, meetings, anything with a date.
+  Fields: "task" (string), "deadline" (ISO date YYYY-MM-DD), "category" ("Job"|"Lecture"|"Other")
+
+media — movies, shows, anime, series to watch.
+  Fields: "title" (string), "category" ("Sitcom"|"Anime"|"Film"|"Documentary"|"Series"|"Other"), "notes" (optional string)
+
+knowledge_cards — facts, formulas, definitions, things learned.
+  Fields: "front" (string), "back" (string, may include LaTeX $...$)
+
+vault — URLs and web links.
+  Fields: "title" (string), "url" (string), "urgency" (integer 1-5)
+
+goals — objectives, habits, resolutions, things to accomplish.
+  Fields: "title" (string, required), "description" (optional string), "importance" (integer 1-5), "size" ("short"|"medium"|"long")
+
+Return ONLY this exact JSON. Use empty arrays for categories with no items. Do NOT rename any field.
+{"deadlines":[{"task":"...","deadline":"YYYY-MM-DD","category":"Job"}],"media":[{"title":"...","category":"Film"}],"knowledge_cards":[{"front":"...","back":"..."}],"vault":[{"title":"...","url":"...","urgency":3}],"goals":[{"title":"...","description":"...","importance":3,"size":"medium"}]}`;
 
 const TIDY_PROMPT = `You are a personal note editor. Rewrite the user's rough note into a clean, concise version.
 
@@ -47,9 +57,12 @@ Rules:
 - If no title is given (or the title field is empty), suggest a short, specific title (max 6 words).
 - Return ONLY valid JSON: { "title": "...", "tidiedContent": "..." }`;
 
-type GrokUsage = { prompt_tokens: number; completion_tokens: number };
+type AiUsage = { prompt_tokens: number; completion_tokens: number };
 
-async function callGrok(systemPrompt: string, userContent: string): Promise<{ content: string; usage?: GrokUsage }> {
+export type AiProvider = "grok" | "gpt";
+export type GptModel = "gpt-5-mini" | "gpt-5-nano";
+
+async function callGrok(systemPrompt: string, userContent: string, options?: { maxTokens?: number }): Promise<{ content: string; usage?: AiUsage }> {
   const apiKey = process.env.GROK_API_KEY;
   if (!apiKey) throw new Error("GROK_API_KEY is not set in .env.local");
 
@@ -63,7 +76,7 @@ async function callGrok(systemPrompt: string, userContent: string): Promise<{ co
         { role: "user", content: userContent },
       ],
       temperature: 0.1,
-      max_tokens: 2048,
+      max_tokens: options?.maxTokens ?? 2048,
       response_format: { type: "json_object" },
     }),
   });
@@ -85,18 +98,77 @@ async function callGrok(systemPrompt: string, userContent: string): Promise<{ co
   return { content, usage };
 }
 
-export type ParseBrainDumpResult = { parsed: ParsedBrainDump; usage?: GrokUsage };
+async function callGpt(systemPrompt: string, userContent: string, model: GptModel, options?: { maxTokens?: number; reasoningEffort?: "low" | "medium" | "high" }): Promise<{ content: string; usage?: AiUsage }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY is not set in .env.local");
 
-export async function parseBrainDump(text: string): Promise<ParseBrainDumpResult> {
-  const { content, usage } = await callGrok(FAN_OUT_PROMPT, text);
-  const parsed = JSON.parse(content) as Partial<ParsedBrainDump>;
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      max_completion_tokens: options?.maxTokens ?? 2048,
+      reasoning_effort: options?.reasoningEffort ?? "low",
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI API error ${res.status}: ${err}`);
+  }
+
+  const data = (await res.json()) as {
+    choices: { message: { content: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+  const content = data.choices[0]?.message?.content ?? "{}";
+  const usage =
+    data.usage?.prompt_tokens != null && data.usage?.completion_tokens != null
+      ? { prompt_tokens: data.usage.prompt_tokens, completion_tokens: data.usage.completion_tokens }
+      : undefined;
+  return { content, usage };
+}
+
+export type ParseBrainDumpResult = { parsed: ParsedBrainDump; usage?: AiUsage };
+
+export async function parseBrainDump(text: string, provider: AiProvider = "grok", model: GptModel = "gpt-5-nano"): Promise<ParseBrainDumpResult> {
+  const { content, usage } = provider === "gpt"
+    ? await callGpt(FAN_OUT_PROMPT, text, model, { maxTokens: 8192 })
+    : await callGrok(FAN_OUT_PROMPT, text, { maxTokens: 4096 });
+
+  if (!content?.trim()) throw new Error("AI returned empty response — try again");
+  // Strip any markdown code fences the model might wrap around JSON
+  const jsonStr = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = JSON.parse(jsonStr) as Record<string, any[]>;
+
+  // Normalize deadlines — model sometimes uses date/description/type instead of deadline/task/category
+  const deadlines: ParsedBrainDump["deadlines"] = (raw.deadlines ?? []).map((d) => ({
+    task: d.task ?? d.description ?? d.name ?? "",
+    deadline: d.deadline ?? d.date ?? d.due ?? "",
+    category: (["Job", "Lecture", "Other"].includes(d.category) ? d.category : d.type ?? "Other") as "Job" | "Lecture" | "Other",
+  })).filter((d) => d.task && d.deadline);
+
+  // Normalize goals — ensure title is always present
+  const goals: ParsedBrainDump["goals"] = (raw.goals ?? []).map((g) => ({
+    title: g.title ?? g.name ?? g.goal ?? "",
+    description: g.description ?? g.details ?? undefined,
+    importance: typeof g.importance === "number" ? Math.min(5, Math.max(1, g.importance)) : 3,
+    size: (["short", "medium", "long"].includes(g.size) ? g.size : "medium") as "short" | "medium" | "long",
+  })).filter((g) => g.title);
+
   return {
     parsed: {
-      deadlines: parsed.deadlines ?? [],
-      media: parsed.media ?? [],
-      knowledge_cards: parsed.knowledge_cards ?? [],
-      vault: parsed.vault ?? [],
-      goals: parsed.goals ?? [],
+      deadlines,
+      media: raw.media ?? [],
+      knowledge_cards: raw.knowledge_cards ?? [],
+      vault: raw.vault ?? [],
+      goals,
     },
     usage,
   };
@@ -104,10 +176,14 @@ export async function parseBrainDump(text: string): Promise<ParseBrainDumpResult
 
 export async function tidyText(
   content: string,
-  title?: string
-): Promise<{ title: string; tidiedContent: string; usage?: GrokUsage }> {
+  title?: string,
+  provider: AiProvider = "grok",
+  model: GptModel = "gpt-5-nano"
+): Promise<{ title: string; tidiedContent: string; usage?: AiUsage }> {
   const userContent = title ? `Title: ${title}\n\n${content}` : content;
-  const { content: raw, usage } = await callGrok(TIDY_PROMPT, userContent);
+  const { content: raw, usage } = provider === "gpt"
+    ? await callGpt(TIDY_PROMPT, userContent, model)
+    : await callGrok(TIDY_PROMPT, userContent);
   const parsed = JSON.parse(raw) as { title?: string; tidiedContent?: string };
   return {
     title: parsed.title ?? title ?? "Untitled",
