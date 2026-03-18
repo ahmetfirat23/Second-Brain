@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { requireUserIdentity } from "./auth";
 
 export const list = query({
@@ -31,7 +31,8 @@ export const toggleDone = mutation({
     await requireUserIdentity(ctx);
     const item = await ctx.db.get(id);
     if (!item) return;
-    await ctx.db.patch(id, { done: !item.done });
+    const nowDone = !item.done;
+    await ctx.db.patch(id, { done: nowDone, doneAt: nowDone ? Date.now() : undefined });
   },
 });
 
@@ -79,5 +80,17 @@ export const unschedule = mutation({
   handler: async (ctx, { id }) => {
     await requireUserIdentity(ctx);
     await ctx.db.patch(id, { scheduledDate: undefined });
+  },
+});
+
+// Internal: delete done items older than 24h
+export const cleanupDoneInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const items = await ctx.db.query("weeklyTodos").collect();
+    const stale = items.filter((i) => i.done && i.doneAt !== undefined && i.doneAt < cutoff);
+    await Promise.all(stale.map((i) => ctx.db.delete(i._id)));
+    return stale.length;
   },
 });

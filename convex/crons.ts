@@ -25,4 +25,23 @@ crons.interval(
   internal.tmdbEnrichment.enrichMissingTmdbCron
 );
 
+// Knowledge card topics: weekly incremental categorization
+crons.interval(
+  "categorize knowledge cards incrementally",
+  { hours: 168 },
+  internal.ai.categorizeIncrementalCron
+);
+
+// Cleanup done todos/deadlines older than 24h — runs every hour
+crons.interval(
+  "cleanup done todos",
+  { hours: 1 },
+  internal.weeklyTodos.cleanupDoneInternal
+);
+crons.interval(
+  "cleanup done deadlines",
+  { hours: 1 },
+  internal.deadlines.cleanupDoneInternal
+);
+
 export default crons;

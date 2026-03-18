@@ -4,6 +4,21 @@ import { internal, api } from "./_generated/api";
 import { requireUserIdentity } from "./auth";
 import type { Id } from "./_generated/dataModel";
 
+const PROPOSE_TOPICS_SYSTEM = `You are a knowledge card organizer. Analyze all flashcards and propose the MINIMUM number of broad topic categories needed — like Anki deck names, not tags. Target 3-5 topics maximum. Aggressively consolidate: related subjects belong in one topic (e.g., all U.S. politics, elections, government, ideology, parties → "U.S. Politics"). Topics must be broad enough that each covers many cards. Never create a topic for a single person's name or a narrow subtopic — group them under the broader field instead.
+
+Good examples: "Mathematics", "U.S. Politics", "Computer Science", "History", "Physics".
+Bad examples (too specific — do NOT use): "Pseudoinverse Basics", "John Carmack", "Democratic Ideology", "Elections System", "Game Technology".
+
+Return ONLY valid JSON: { "topics": ["Topic A", "Topic B"] }`;
+
+const ASSIGN_TOPICS_SYSTEM = `You are a knowledge card organizer. Assign each card to exactly one topic from the provided list. Topics are broad subjects like Anki decks — assign to the best-fitting general category. Do not create new topics.
+
+Return ONLY valid JSON: { "assignments": [{ "id": "card_id", "topic": "Topic Name" }] }`;
+
+const ASSIGN_INCREMENTAL_SYSTEM = `You are a knowledge card organizer. Assign each uncategorized card to the most fitting topic from the provided list. Topics are broad subjects like Anki decks. Prefer existing topics strongly; only create a new topic if no existing one fits at all.
+
+Return ONLY valid JSON: { "assignments": [{ "id": "card_id", "topic": "Topic Name" }] }`;
+
 type ParsedBrainDump = {
   deadlines: { task: string; deadline: string; category: "Job" | "Lecture" | "Other" }[];
   media: { title: string; category: "Sitcom" | "Anime" | "Film" | "Documentary" | "Series" | "Other"; notes?: string }[];
@@ -489,5 +504,149 @@ export const tidyAllPending = internalAction({
       }
     }
     console.log(`[cron] Fan-out: ${processed} processed, ${errors} errors`);
+  },
+});
+
+// ─── Knowledge card topic categorization ──────────────────────────────────────
+
+export const proposeTopics = action({
+  args: {},
+  handler: async (ctx): Promise<{ topics: string[] }> => {
+    await requireUserIdentity(ctx);
+    const allCards = await ctx.runQuery(api.knowledgeCards.list, {});
+    if (allCards.length === 0) return { topics: [] };
+
+    const cardsText = allCards
+      .slice(0, 150)
+      .map((c) => `Q: ${c.front.slice(0, 120)} | A: ${c.back.slice(0, 120)}`)
+      .join("\n");
+
+    const settings = await ctx.runQuery(api.chatContext.getSettings, {});
+    const provider = settings.aiProvider ?? "gpt";
+    const model = settings.aiGptModel ?? "gpt-5-nano";
+
+    let raw: string;
+    let usage: AiUsage | undefined;
+    if (provider === "gpt") {
+      const result = await callGpt(PROPOSE_TOPICS_SYSTEM, cardsText, model, { maxTokens: 512 });
+      raw = result.content; usage = result.usage;
+    } else {
+      const result = await callGrok(PROPOSE_TOPICS_SYSTEM, cardsText, { maxTokens: 512 });
+      raw = result.content; usage = result.usage;
+    }
+
+    if (usage) {
+      await ctx.runMutation(api.apiUsage.log, {
+        source: "ai-topics-propose", provider,
+        inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens,
+        ...(provider === "gpt" && { model }),
+      });
+    }
+
+    const parsed = JSON.parse(raw.trim() || "{}") as { topics?: string[] };
+    return { topics: parsed.topics ?? [] };
+  },
+});
+
+export const assignCardsToTopics = action({
+  args: {
+    topics: v.array(v.string()),
+    mode: v.union(v.literal("scratch"), v.literal("incremental")),
+  },
+  handler: async (ctx, { topics, mode }): Promise<{ assigned: number }> => {
+    await requireUserIdentity(ctx);
+    const allCards = await ctx.runQuery(api.knowledgeCards.list, {});
+
+    let cardsToAssign = allCards;
+    let topicList = topics;
+
+    if (mode === "scratch") {
+      await ctx.runMutation(api.knowledgeCards.clearAllTopics, {});
+    } else {
+      cardsToAssign = allCards.filter((c) => !c.topic);
+      const cardTopics = [...new Set(allCards.map((c) => c.topic).filter(Boolean))] as string[];
+      topicList = [...new Set([...cardTopics, ...topics])];
+    }
+
+    if (cardsToAssign.length === 0) return { assigned: 0 };
+
+    const systemPrompt = mode === "scratch" ? ASSIGN_TOPICS_SYSTEM : ASSIGN_INCREMENTAL_SYSTEM;
+    const topicsSection = topicList.length > 0 ? `Topics: ${topicList.join(", ")}\n\n` : "";
+    const cardsText = topicsSection + "Cards:\n" + cardsToAssign
+      .map((c) => JSON.stringify({ id: c._id, q: c.front.slice(0, 100), a: c.back.slice(0, 100) }))
+      .join("\n");
+
+    const settings = await ctx.runQuery(api.chatContext.getSettings, {});
+    const provider = settings.aiProvider ?? "gpt";
+    const model = settings.aiGptModel ?? "gpt-5-nano";
+
+    let raw: string;
+    let usage: AiUsage | undefined;
+    if (provider === "gpt") {
+      const result = await callGpt(systemPrompt, cardsText, model, { maxTokens: 2048 });
+      raw = result.content; usage = result.usage;
+    } else {
+      const result = await callGrok(systemPrompt, cardsText, { maxTokens: 2048 });
+      raw = result.content; usage = result.usage;
+    }
+
+    if (usage) {
+      await ctx.runMutation(api.apiUsage.log, {
+        source: "ai-topics-assign", provider,
+        inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens,
+        ...(provider === "gpt" && { model }),
+      });
+    }
+
+    const parsed = JSON.parse(raw.trim() || "{}") as { assignments?: { id: string; topic: string }[] };
+    const assignments = parsed.assignments ?? [];
+
+    if (assignments.length > 0) {
+      await ctx.runMutation(api.knowledgeCards.bulkAssignTopics, {
+        assignments: assignments.map((a) => ({ id: a.id as Id<"knowledgeCards">, topic: a.topic })),
+      });
+    }
+
+    return { assigned: assignments.length };
+  },
+});
+
+// Internal: incremental topic categorization for weekly cron
+export const categorizeIncrementalCron = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const allCards = await ctx.runQuery(internal.knowledgeCards.listInternal, {});
+    const uncategorized = allCards.filter((c) => !c.topic);
+    const existingTopics = [...new Set(allCards.map((c) => c.topic).filter(Boolean))] as string[];
+
+    if (uncategorized.length === 0 || existingTopics.length === 0) {
+      console.log("[cron] Topic categorization: nothing to do");
+      return;
+    }
+
+    const topicsSection = `Topics: ${existingTopics.join(", ")}\n\n`;
+    const cardsText = topicsSection + "Cards:\n" + uncategorized
+      .map((c) => JSON.stringify({ id: c._id, q: c.front.slice(0, 100), a: c.back.slice(0, 100) }))
+      .join("\n");
+
+    const { content: raw, usage } = await callGrok(ASSIGN_INCREMENTAL_SYSTEM, cardsText, { maxTokens: 2048 });
+
+    if (usage) {
+      await ctx.runMutation(api.apiUsage.log, {
+        source: "ai-topics-cron", provider: "grok",
+        inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens,
+      });
+    }
+
+    const parsed = JSON.parse(raw.trim() || "{}") as { assignments?: { id: string; topic: string }[] };
+    const assignments = parsed.assignments ?? [];
+
+    if (assignments.length > 0) {
+      await ctx.runMutation(internal.knowledgeCards.bulkAssignTopicsInternal, {
+        assignments: assignments.map((a) => ({ id: a.id as Id<"knowledgeCards">, topic: a.topic })),
+      });
+    }
+
+    console.log(`[cron] Topic categorization: assigned ${assignments.length} cards`);
   },
 });

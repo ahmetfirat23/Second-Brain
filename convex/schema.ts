@@ -64,6 +64,8 @@ export default defineSchema({
       v.literal("Other")
     ),
     sortOrder: v.optional(v.number()),
+    done: v.optional(v.boolean()),
+    doneAt: v.optional(v.number()),
   }),
 
   vault: defineTable({
@@ -82,6 +84,7 @@ export default defineSchema({
     interval: v.number(),
     repetitions: v.number(),
     nextReview: v.string(),
+    topic: v.optional(v.string()),
   }),
 
   apiUsage: defineTable({
@@ -106,6 +109,7 @@ export default defineSchema({
     urgency: v.number(),
     sortOrder: v.number(),
     scheduledDate: v.optional(v.string()),
+    doneAt: v.optional(v.number()),
   }).index("by_scheduled", ["scheduledDate"]),
 
   goals: defineTable({

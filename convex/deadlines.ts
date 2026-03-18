@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { requireUserIdentity } from "./auth";
 
 const categoryValidator = v.union(
@@ -69,6 +69,17 @@ export const update = mutation({
   },
 });
 
+export const markDone = mutation({
+  args: { id: v.id("deadlines") },
+  handler: async (ctx, { id }) => {
+    await requireUserIdentity(ctx);
+    const item = await ctx.db.get(id);
+    if (!item) return;
+    const nowDone = !item.done;
+    await ctx.db.patch(id, { done: nowDone, doneAt: nowDone ? Date.now() : undefined });
+  },
+});
+
 export const remove = mutation({
   args: { id: v.id("deadlines") },
   handler: async (ctx, { id }) => {
@@ -83,5 +94,17 @@ export const removeBySourceDumpId = mutation({
     await requireUserIdentity(ctx);
     const items = await ctx.db.query("deadlines").collect();
     await Promise.all(items.filter((i) => i.sourceDumpId === sourceDumpId).map((i) => ctx.db.delete(i._id)));
+  },
+});
+
+// Internal: delete done deadlines older than 24h
+export const cleanupDoneInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const items = await ctx.db.query("deadlines").collect();
+    const stale = items.filter((i) => i.done && i.doneAt !== undefined && i.doneAt < cutoff);
+    await Promise.all(stale.map((i) => ctx.db.delete(i._id)));
+    return stale.length;
   },
 });

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { requireUserIdentity } from "./auth";
 
 function sm2(
@@ -144,5 +144,35 @@ export const removeBySourceDumpId = mutation({
     await requireUserIdentity(ctx);
     const items = await ctx.db.query("knowledgeCards").collect();
     await Promise.all(items.filter((i) => i.sourceDumpId === sourceDumpId).map((i) => ctx.db.delete(i._id)));
+  },
+});
+
+export const bulkAssignTopics = mutation({
+  args: { assignments: v.array(v.object({ id: v.id("knowledgeCards"), topic: v.string() })) },
+  handler: async (ctx, { assignments }) => {
+    await requireUserIdentity(ctx);
+    await Promise.all(assignments.map(({ id, topic }) => ctx.db.patch(id, { topic })));
+  },
+});
+
+export const clearAllTopics = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireUserIdentity(ctx);
+    const items = await ctx.db.query("knowledgeCards").collect();
+    await Promise.all(items.map((i) => ctx.db.patch(i._id, { topic: undefined })));
+  },
+});
+
+// Internal versions for cron (no auth required)
+export const listInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => ctx.db.query("knowledgeCards").collect(),
+});
+
+export const bulkAssignTopicsInternal = internalMutation({
+  args: { assignments: v.array(v.object({ id: v.id("knowledgeCards"), topic: v.string() })) },
+  handler: async (ctx, { assignments }) => {
+    await Promise.all(assignments.map(({ id, topic }) => ctx.db.patch(id, { topic })));
   },
 });

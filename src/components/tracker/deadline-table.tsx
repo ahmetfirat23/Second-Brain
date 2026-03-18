@@ -52,12 +52,14 @@ type DeadlineItem = {
   deadline: string;
   category: Category;
   sortOrder?: number;
+  done?: boolean;
 };
 
 function SortableRow({
   item,
   onEdit,
   onRemove,
+  onMarkDone,
   editingId,
   editTask,
   editDeadline,
@@ -71,6 +73,7 @@ function SortableRow({
   item: DeadlineItem;
   onEdit: () => void;
   onRemove: () => void;
+  onMarkDone: () => void;
   editingId: Id<"deadlines"> | null;
   editTask: string;
   editDeadline: string;
@@ -91,7 +94,7 @@ function SortableRow({
   };
 
   const days = getDaysLeft(item.deadline);
-  const isUrgent = days <= 7;
+  const isUrgent = !item.done && days <= 7;
   const isEditing = editingId === item._id;
 
   return (
@@ -99,9 +102,20 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       className={`group flex items-start gap-2 px-3 py-3 border-b border-[hsl(0_0%_11%)] last:border-0 transition-colors select-none ${
-        isUrgent ? "bg-red-950/20 hover:bg-red-950/30" : "hover:bg-[hsl(0_0%_11%)]"
+        item.done ? "opacity-50 hover:bg-[hsl(0_0%_11%)]" : isUrgent ? "bg-red-950/20 hover:bg-red-950/30" : "hover:bg-[hsl(0_0%_11%)]"
       } ${isDragging ? "z-50 shadow-lg" : ""}`}
     >
+      {/* Done checkbox */}
+      <button
+        onClick={onMarkDone}
+        className="mt-0.5 shrink-0 p-0.5"
+        aria-label={item.done ? "Mark undone" : "Mark done"}
+      >
+        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.done ? "bg-emerald-600 border-emerald-500 text-white" : "border-[hsl(0_0%_35%)] hover:border-emerald-500 text-transparent"}`}>
+          {item.done && <Check className="w-2.5 h-2.5" />}
+        </span>
+      </button>
+
       {/* Drag handle */}
       <button
         {...attributes}
@@ -145,7 +159,7 @@ function SortableRow({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               {isUrgent && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" />}
-              <span className={`text-sm font-medium ${isUrgent ? "text-red-200" : "text-white"}`}>{item.task}</span>
+              <span className={`text-sm font-medium ${item.done ? "line-through text-[hsl(0_0%_55%)]" : isUrgent ? "text-red-200" : "text-white"}`}>{item.task}</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-xs text-[hsl(0_0%_70%)]">
@@ -178,6 +192,7 @@ export function DeadlineTable() {
   const updateDeadline = useMutation(api.deadlines.update);
   const removeDeadline = useMutation(api.deadlines.remove);
   const reorderDeadlines = useMutation(api.deadlines.reorder);
+  const markDone = useMutation(api.deadlines.markDone);
 
   const [editingId, setEditingId] = useState<Id<"deadlines"> | null>(null);
   const [editTask, setEditTask] = useState("");
@@ -304,6 +319,7 @@ export function DeadlineTable() {
                     item={item as DeadlineItem}
                     onEdit={() => startEdit(item as DeadlineItem)}
                     onRemove={() => { if (confirm("Delete this deadline?")) removeDeadline({ id: item._id }); }}
+                    onMarkDone={() => markDone({ id: item._id })}
                     editingId={editingId}
                     editTask={editTask}
                     editDeadline={editDeadline}
