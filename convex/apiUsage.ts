@@ -123,6 +123,11 @@ export const getStats = query({
     const dailySorted = Object.entries(byDay).sort(([a], [b]) => b.localeCompare(a));
     const weeklySorted = Object.entries(byWeek).sort(([a], [b]) => b.localeCompare(a));
 
+    const today = formatDate(Date.now());
+    const gptTodayTotal = all
+      .filter((r) => r.provider === "gpt" && formatDate(r._creationTime) === today)
+      .reduce((sum, r) => sum + r.inputTokens + r.outputTokens, 0);
+
     return {
       overall: {
         calls: totalCalls,
@@ -134,6 +139,7 @@ export const getStats = query({
       byProvider,
       byDay: dailySorted.map(([date, s]) => ({ date, ...s })),
       byWeek: weeklySorted.map(([week, s]) => ({ week, ...s })),
+      gptTodayTotal,
     };
   },
 });

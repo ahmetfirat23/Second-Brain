@@ -4,14 +4,18 @@ import { internal, api } from "./_generated/api";
 import { requireUserIdentity } from "./auth";
 import type { Id } from "./_generated/dataModel";
 
-const PROPOSE_TOPICS_SYSTEM = `You are a knowledge card organizer. Analyze all flashcards and propose the MINIMUM number of broad topic categories needed — like Anki deck names, not tags. Target 3-5 topics maximum. Aggressively consolidate: related subjects belong in one topic (e.g., all U.S. politics, elections, government, ideology, parties → "U.S. Politics"). Topics must be broad enough that each covers many cards. Never create a topic for a single person's name or a narrow subtopic — group them under the broader field instead.
+function buildProposeTopicsSystem(seedTopics?: string[]): string {
+  const seedSection = seedTopics && seedTopics.length > 0
+    ? `\n\nThe user has specified preferred topic names: ${seedTopics.map((t) => `"${t}"`).join(", ")}. Rules: (1) Always include ALL of these in the output, even if no current cards fit them — they are reserved for future cards. (2) Keep names close to what the user wrote — minor wording adjustments are fine, but do not rename to something fundamentally different (e.g. "Linear Algebra" → "Mathematics" is not allowed). (3) You may add extra topics only for cards that clearly do not fit any preferred topic.`
+    : "";
+  return `You are a knowledge card organizer. Analyze all flashcards and propose topic categories — like Anki deck names, not tags. Target 3-5 topics maximum. Aggressively consolidate: related subjects belong in one topic. Topics must be broad enough that each covers many cards. Never create a topic for a single person's name or a narrow subtopic. Topics can be empty (no current cards) — that is fine.
 
-Good examples: "Mathematics", "U.S. Politics", "Computer Science", "History", "Physics".
-Bad examples (too specific — do NOT use): "Pseudoinverse Basics", "John Carmack", "Democratic Ideology", "Elections System", "Game Technology".
+Bad examples (too specific — do NOT use): "Pseudoinverse Basics", "John Carmack", "Democratic Ideology", "Elections System".
 
-Return ONLY valid JSON: { "topics": ["Topic A", "Topic B"] }`;
+Return ONLY valid JSON: { "topics": ["Topic A", "Topic B"] }${seedSection}`;
+}
 
-const ASSIGN_TOPICS_SYSTEM = `You are a knowledge card organizer. Assign each card to exactly one topic from the provided list. Topics are broad subjects like Anki decks — assign to the best-fitting general category. Do not create new topics.
+const ASSIGN_TOPICS_SYSTEM = `You are a knowledge card organizer. Assign each card to exactly one topic from the provided list. Topics are broad subjects like Anki decks — assign to the best-fitting general category. Do not create new topics. Not every topic needs to have a card assigned to it — empty topics are fine.
 
 Return ONLY valid JSON: { "assignments": [{ "id": "card_id", "topic": "Topic Name" }] }`;
 
@@ -42,7 +46,7 @@ Rules:
 - Only extract items clearly mentioned. Do not infer.
 - deadlines: must have a specific date or relative date you can compute from today
 - media: TV shows, movies, anime to watch
-- knowledge_cards: facts, CS concepts, formulas to remember
+- knowledge_cards: facts, CS concepts, formulas to remember. For any math — use LaTeX notation: inline with $...$ and display/block with $$...$$. For example: "The derivative of $x^n$ is $nx^{n-1}$" or "$$\int_a^b f(x)\,dx$$"
 - vault: URLs/links mentioned
 - goals: things to do, objectives, resolutions, habits to build. importance 1-5 (5=most important). size: short (quick task), medium (project), long (big goal)
 - If nothing fits a category, return an empty array for it`;
@@ -510,8 +514,8 @@ export const tidyAllPending = internalAction({
 // ─── Knowledge card topic categorization ──────────────────────────────────────
 
 export const proposeTopics = action({
-  args: {},
-  handler: async (ctx): Promise<{ topics: string[] }> => {
+  args: { seedTopics: v.optional(v.array(v.string())) },
+  handler: async (ctx, { seedTopics }): Promise<{ topics: string[] }> => {
     await requireUserIdentity(ctx);
     const allCards = await ctx.runQuery(api.knowledgeCards.list, {});
     if (allCards.length === 0) return { topics: [] };
@@ -521,6 +525,7 @@ export const proposeTopics = action({
       .map((c) => `Q: ${c.front.slice(0, 120)} | A: ${c.back.slice(0, 120)}`)
       .join("\n");
 
+    const systemPrompt = buildProposeTopicsSystem(seedTopics);
     const settings = await ctx.runQuery(api.chatContext.getSettings, {});
     const provider = settings.aiProvider ?? "gpt";
     const model = settings.aiGptModel ?? "gpt-5-nano";
@@ -528,10 +533,10 @@ export const proposeTopics = action({
     let raw: string;
     let usage: AiUsage | undefined;
     if (provider === "gpt") {
-      const result = await callGpt(PROPOSE_TOPICS_SYSTEM, cardsText, model, { maxTokens: 512 });
+      const result = await callGpt(systemPrompt, cardsText, model, { maxTokens: 512 });
       raw = result.content; usage = result.usage;
     } else {
-      const result = await callGrok(PROPOSE_TOPICS_SYSTEM, cardsText, { maxTokens: 512 });
+      const result = await callGrok(systemPrompt, cardsText, { maxTokens: 512 });
       raw = result.content; usage = result.usage;
     }
 

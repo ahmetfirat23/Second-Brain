@@ -52,6 +52,7 @@ export default defineSchema({
     useLimitMode: v.optional(v.boolean()),
     aiProvider: v.optional(v.union(v.literal("grok"), v.literal("gpt"))),
     aiGptModel: v.optional(v.union(v.literal("gpt-5-mini"), v.literal("gpt-5-nano"))),
+    knowledgeSeedTopics: v.optional(v.array(v.string())),
   }),
 
   deadlines: defineTable({

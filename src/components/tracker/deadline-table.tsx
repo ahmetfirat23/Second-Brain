@@ -212,16 +212,21 @@ export function DeadlineTable() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const filteredItems = items.filter((item) => {
-    if (filterCategory !== "all" && item.category !== filterCategory) return false;
-    if (filterUrgency !== "all") {
-      const days = getDaysLeft(item.deadline);
-      if (filterUrgency === "overdue" && days >= 0) return false;
-      if (filterUrgency === "this_week" && (days < 0 || days > 7)) return false;
-      if (filterUrgency === "later" && days <= 7) return false;
-    }
-    return true;
-  });
+  const filteredItems = items
+    .filter((item) => {
+      if (filterCategory !== "all" && item.category !== filterCategory) return false;
+      if (filterUrgency !== "all") {
+        const days = getDaysLeft(item.deadline);
+        if (filterUrgency === "overdue" && days >= 0) return false;
+        if (filterUrgency === "this_week" && (days < 0 || days > 7)) return false;
+        if (filterUrgency === "later" && days <= 7) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+      return 0;
+    });
 
   function startEdit(item: DeadlineItem) {
     setEditingId(item._id);

@@ -29,6 +29,24 @@ export default function ApiUsagePage() {
         </p>
       </div>
 
+      {stats && (
+        <div className="mb-6 bg-[hsl(0_0%_9%)] border border-[hsl(0_0%_22%)] rounded-xl p-4">
+          <p className="text-xs font-medium text-[hsl(0_0%_72%)] uppercase tracking-wider mb-1">OpenAI free quota — today</p>
+          <p className="text-[11px] text-[hsl(0_0%_55%)] mb-2">
+            {fmtTokens(stats.gptTodayTotal ?? 0)} / 2.5M tokens used ({(((stats.gptTodayTotal ?? 0) / 2_500_000) * 100).toFixed(1)}%)
+          </p>
+          <div className="h-2 bg-[hsl(0_0%_16%)] rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${Math.min(((stats.gptTodayTotal ?? 0) / 2_500_000) * 100, 100)}%`,
+                background: (stats.gptTodayTotal ?? 0) > 2_000_000 ? "hsl(0 72% 51%)" : (stats.gptTodayTotal ?? 0) > 1_500_000 ? "hsl(38 92% 50%)" : "hsl(142 71% 45%)",
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {stats && stats.overall.calls > 0 && (
         <>
           <div className="mb-6">

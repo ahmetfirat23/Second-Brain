@@ -27,6 +27,7 @@ export const getSettings = query({
       useLimitMode: row?.useLimitMode ?? false,
       aiProvider: row?.aiProvider ?? "gpt",
       aiGptModel: aiGptModel as "gpt-5-mini" | "gpt-5-nano",
+      knowledgeSeedTopics: row?.knowledgeSeedTopics ?? [],
     };
   },
 });
@@ -83,6 +84,19 @@ export const setUseLimitMode = mutation({
       await ctx.db.insert("chatContext", { pinnedMediaIds: [], useLimitMode: enabled });
     } else {
       await ctx.db.patch(row._id, { useLimitMode: enabled });
+    }
+  },
+});
+
+export const setSeedTopics = mutation({
+  args: { topics: v.array(v.string()) },
+  handler: async (ctx, { topics }) => {
+    await requireUserIdentity(ctx);
+    const row = await ctx.db.query("chatContext").first();
+    if (!row) {
+      await ctx.db.insert("chatContext", { pinnedMediaIds: [], knowledgeSeedTopics: topics });
+    } else {
+      await ctx.db.patch(row._id, { knowledgeSeedTopics: topics });
     }
   },
 });

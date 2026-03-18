@@ -120,8 +120,10 @@ function CardEditor({ onDone }: { onDone: () => void }) {
 export function FlashcardDeck() {
   const allCards = useQuery(api.knowledgeCards.list) ?? [];
   const dueCards = useQuery(api.knowledgeCards.getDue) ?? [];
+  const settings = useQuery(api.chatContext.getSettings);
   const reviewCard = useMutation(api.knowledgeCards.review);
   const removeCard = useMutation(api.knowledgeCards.remove);
+  const setSeedTopics = useMutation(api.chatContext.setSeedTopics);
   const proposeTopicsFn = useAction(api.ai.proposeTopics);
   const assignCardsToTopicsFn = useAction(api.ai.assignCardsToTopics);
 
@@ -133,6 +135,9 @@ export function FlashcardDeck() {
   const [catState, setCatState] = useState<CatPhase>({ phase: "idle" });
   const [editTopics, setEditTopics] = useState<string[]>([]);
   const [newTopicInput, setNewTopicInput] = useState("");
+  const [newSeedInput, setNewSeedInput] = useState("");
+
+  const seedTopics = settings?.knowledgeSeedTopics ?? [];
 
   const allTopics = useMemo(
     () => [...new Set(allCards.map((c) => c.topic).filter(Boolean))].sort() as string[],
@@ -175,12 +180,23 @@ export function FlashcardDeck() {
   async function handleProposeTopics() {
     setCatState({ phase: "proposing" });
     try {
-      const result = await proposeTopicsFn({});
+      const result = await proposeTopicsFn({ seedTopics: seedTopics.length > 0 ? seedTopics : undefined });
       setEditTopics(result.topics);
       setCatState({ phase: "reviewing", topics: result.topics });
     } catch {
       setCatState({ phase: "idle" });
     }
+  }
+
+  function addSeedTopic() {
+    const t = newSeedInput.trim();
+    if (!t || seedTopics.includes(t)) { setNewSeedInput(""); return; }
+    setSeedTopics({ topics: [...seedTopics, t] });
+    setNewSeedInput("");
+  }
+
+  function removeSeedTopic(t: string) {
+    setSeedTopics({ topics: seedTopics.filter((s) => s !== t) });
   }
 
   async function handleAssignToTopics() {
@@ -241,33 +257,66 @@ export function FlashcardDeck() {
           <p className="text-xs font-medium text-[hsl(0_0%_80%)] uppercase tracking-wider">Topic Management</p>
 
           {catState.phase === "idle" && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <p className="text-xs text-[hsl(0_0%_72%)] mb-1.5 font-medium">Incremental</p>
+            <div className="space-y-4">
+              {/* Seed topics */}
+              <div>
+                <p className="text-xs text-[hsl(0_0%_72%)] mb-1.5 font-medium">Preferred topics</p>
                 <p className="text-[11px] text-[hsl(0_0%_55%)] mb-2">
-                  Assigns {uncategorizedCount} uncategorized {uncategorizedCount === 1 ? "card" : "cards"} to existing topics. New topics created as needed.
+                  AI will reuse these when proposing topics, adding new ones only if needed.
                 </p>
-                <button
-                  onClick={handleIncrementalCategorize}
-                  disabled={uncategorizedCount === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-[hsl(0_0%_18%)] disabled:opacity-40 text-sm text-white transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Categorize new cards
-                </button>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {seedTopics.map((t) => (
+                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-[hsl(0_0%_14%)] text-[hsl(0_0%_80%)] border border-[hsl(0_0%_25%)]">
+                      {t}
+                      <button onClick={() => removeSeedTopic(t)} className="hover:text-white ml-0.5">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <div className="flex items-center gap-1">
+                    <input
+                      value={newSeedInput}
+                      onChange={(e) => setNewSeedInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSeedTopic(); } }}
+                      placeholder="Add topic…"
+                      className="px-2 py-1 rounded-lg text-xs bg-[hsl(0_0%_12%)] border border-[hsl(0_0%_25%)] text-white placeholder:text-[hsl(0_0%_50%)] outline-none w-28"
+                    />
+                    <button onClick={addSeedTopic} className="p-1 text-[hsl(0_0%_60%)] hover:text-white">
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="w-px bg-[hsl(0_0%_18%)] hidden sm:block" />
-              <div className="flex-1">
-                <p className="text-xs text-[hsl(0_0%_72%)] mb-1.5 font-medium">From scratch</p>
-                <p className="text-[11px] text-[hsl(0_0%_55%)] mb-2">
-                  AI proposes new topics from all {allCards.length} cards. You review and edit before assigning.
-                </p>
-                <button
-                  onClick={handleProposeTopics}
-                  disabled={allCards.length === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(263_90%_60%/0.15)] hover:bg-[hsl(263_90%_60%/0.25)] disabled:opacity-40 text-sm text-[hsl(263_70%_75%)] transition-colors border border-[hsl(263_90%_60%/0.2)]"
-                >
-                  <Tag className="w-3.5 h-3.5" /> Propose topics
-                </button>
+              <div className="w-full h-px bg-[hsl(0_0%_18%)]" />
+              {/* Categorize actions */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <p className="text-xs text-[hsl(0_0%_72%)] mb-1.5 font-medium">Incremental</p>
+                  <p className="text-[11px] text-[hsl(0_0%_55%)] mb-2">
+                    Assigns {uncategorizedCount} uncategorized {uncategorizedCount === 1 ? "card" : "cards"} to existing topics. New topics created as needed.
+                  </p>
+                  <button
+                    onClick={handleIncrementalCategorize}
+                    disabled={uncategorizedCount === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(0_0%_14%)] hover:bg-[hsl(0_0%_18%)] disabled:opacity-40 text-sm text-white transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Categorize new cards
+                  </button>
+                </div>
+                <div className="w-px bg-[hsl(0_0%_18%)] hidden sm:block" />
+                <div className="flex-1">
+                  <p className="text-xs text-[hsl(0_0%_72%)] mb-1.5 font-medium">From scratch</p>
+                  <p className="text-[11px] text-[hsl(0_0%_55%)] mb-2">
+                    AI proposes topics from all {allCards.length} cards{seedTopics.length > 0 ? `, starting from your ${seedTopics.length} preferred topic${seedTopics.length > 1 ? "s" : ""}` : ""}. You review before assigning.
+                  </p>
+                  <button
+                    onClick={handleProposeTopics}
+                    disabled={allCards.length === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(263_90%_60%/0.15)] hover:bg-[hsl(263_90%_60%/0.25)] disabled:opacity-40 text-sm text-[hsl(263_70%_75%)] transition-colors border border-[hsl(263_90%_60%/0.2)]"
+                  >
+                    <Tag className="w-3.5 h-3.5" /> Propose topics
+                  </button>
+                </div>
               </div>
             </div>
           )}
