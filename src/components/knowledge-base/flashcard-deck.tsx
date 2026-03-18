@@ -45,7 +45,7 @@ type CatPhase =
   | { phase: "assigning" }
   | { phase: "done"; assigned: number };
 
-function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 | 3) => void }) {
+function ReviewCard({ card, onRate, onBury }: { card: Card; onRate: (rating: 0 | 1 | 2 | 3) => void; onBury: () => void }) {
   const [flipped, setFlipped] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -53,10 +53,15 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
     startTransition(() => { onRate(rating); setFlipped(false); });
   }
 
+  function handleBury() {
+    startTransition(() => { onBury(); setFlipped(false); });
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === " " || e.key === "Enter") { e.preventDefault(); setFlipped((f) => !f); }
+      if (e.key === "b") { e.preventDefault(); handleBury(); }
       if (flipped && !isPending) {
         if (e.key === "1") handleRate(0);
         else if (e.key === "2") handleRate(1);
@@ -77,7 +82,7 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
           <div className="text-lg text-white leading-relaxed">
             <MathContent text={flipped ? card.back : card.front} />
           </div>
-          {!flipped && <p className="mt-4 text-xs text-[hsl(0_0%_68%)]">Space to reveal · 1–4 to rate</p>}
+          {!flipped && <p className="mt-4 text-xs text-[hsl(0_0%_68%)]">Space to reveal · 1–4 to rate · B to bury</p>}
         </div>
       </div>
       {flipped ? (
@@ -90,7 +95,13 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
           ))}
         </div>
       ) : (
-        <p className="text-xs text-[hsl(0_0%_68%)]">Interval: {card.interval}d · Ease: {card.easeFactor.toFixed(1)}</p>
+        <div className="flex items-center justify-between w-full">
+          <p className="text-xs text-[hsl(0_0%_68%)]">Interval: {card.interval}d · Ease: {card.easeFactor.toFixed(1)}</p>
+          <button onClick={handleBury} disabled={isPending}
+            className="text-xs text-[hsl(0_0%_52%)] hover:text-[hsl(0_0%_72%)] transition-colors disabled:opacity-40">
+            Bury (B)
+          </button>
+        </div>
       )}
     </div>
   );
@@ -145,6 +156,7 @@ export function FlashcardDeck() {
   const dueCards = useQuery(api.knowledgeCards.getDue) ?? [];
   const settings = useQuery(api.chatContext.getSettings);
   const reviewCard = useMutation(api.knowledgeCards.review);
+  const buryCard = useMutation(api.knowledgeCards.bury);
   const removeCard = useMutation(api.knowledgeCards.remove);
   const setSeedTopics = useMutation(api.chatContext.setSeedTopics);
   const proposeTopicsFn = useAction(api.ai.proposeTopics);
@@ -189,6 +201,15 @@ export function FlashcardDeck() {
       else setReviewIdx((i) => i + 1);
     });
   }, [filteredDueCards, reviewIdx, reviewCard]);
+
+  const handleBury = useCallback(() => {
+    const card = filteredDueCards[reviewIdx];
+    if (!card) return;
+    buryCard({ id: card._id }).then(() => {
+      if (reviewIdx >= filteredDueCards.length - 1) setMode("all");
+      else setReviewIdx((i) => i + 1);
+    });
+  }, [filteredDueCards, reviewIdx, buryCard]);
 
   async function handleIncrementalCategorize() {
     setCatState({ phase: "assigning" });
@@ -427,7 +448,7 @@ export function FlashcardDeck() {
                 </div>
                 <button onClick={() => setMode("all")} className="text-xs text-[hsl(0_0%_64%)] hover:text-white">Exit</button>
               </div>
-              <ReviewCard card={currentCard} onRate={handleRate} />
+              <ReviewCard card={currentCard} onRate={handleRate} onBury={handleBury} />
             </div>
           ) : null}
         </div>

@@ -131,6 +131,16 @@ export const update = mutation({
   },
 });
 
+export const bury = mutation({
+  args: { id: v.id("knowledgeCards") },
+  handler: async (ctx, { id }) => {
+    await requireUserIdentity(ctx);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    await ctx.db.patch(id, { nextReview: tomorrow.toISOString().split("T")[0] });
+  },
+});
+
 export const remove = mutation({
   args: { id: v.id("knowledgeCards") },
   handler: async (ctx, { id }) => {
