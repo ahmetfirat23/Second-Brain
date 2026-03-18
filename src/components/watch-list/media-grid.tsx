@@ -46,6 +46,8 @@ export function MediaGrid() {
   const [toWatchSort, setToWatchSort] = useState<{ by: "date" | "alpha" | "score" | "runtime" | "random"; rev: boolean; seed: number }>({ by: "date", rev: true, seed: 1 });
   const [watchedSort, setWatchedSort] = useState<{ by: "date" | "alpha" | "score" | "runtime" | "random"; rev: boolean; seed: number }>({ by: "date", rev: true, seed: 1 });
   const [filterCategory, setFilterCategory] = useState<typeof CATEGORIES[number] | "all">("all");
+  const [filterGenre, setFilterGenre] = useState("all");
+  const [listSearch, setListSearch] = useState("");
   const watchedSectionRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -149,8 +151,15 @@ export function MediaGrid() {
   const rawToWatch = items.filter((i) => !i.watchedAt);
   const rawWatched = items.filter((i) => !!i.watchedAt);
 
-  const filterByCategory = <T extends { category: string }>(list: T[]) =>
-    filterCategory === "all" ? list : list.filter((i) => i.category === filterCategory);
+  const allGenres = Array.from(new Set(items.flatMap((i) => i.genres ?? []))).sort();
+
+  const lq = listSearch.trim().toLowerCase();
+  const filterByCategory = <T extends { category: string; title: string; genres?: string[] }>(list: T[]) => {
+    let result = filterCategory === "all" ? list : list.filter((i) => i.category === filterCategory);
+    if (filterGenre !== "all") result = result.filter((i) => i.genres?.includes(filterGenre));
+    if (lq) result = result.filter((i) => i.title.toLowerCase().includes(lq));
+    return result;
+  };
 
   function seededHash(id: string, seed: number): number {
     let h = seed;
@@ -334,14 +343,35 @@ export function MediaGrid() {
           </button>
           <LetterboxdImport />
           {items.length > 0 && (
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value as typeof filterCategory)}
-              className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white outline-none [color-scheme:dark]"
-            >
-              <option value="all">All</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <>
+              <div className="flex items-center gap-1.5 bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2">
+                <Search className="w-3.5 h-3.5 text-[hsl(0_0%_52%)] shrink-0" />
+                <input
+                  value={listSearch}
+                  onChange={(e) => setListSearch(e.target.value)}
+                  placeholder="Search titles…"
+                  className="bg-transparent text-sm text-white placeholder:text-[hsl(0_0%_52%)] outline-none w-32"
+                />
+              </div>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value as typeof filterCategory)}
+                className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white outline-none [color-scheme:dark]"
+              >
+                <option value="all">All</option>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {allGenres.length > 0 && (
+                <select
+                  value={filterGenre}
+                  onChange={(e) => setFilterGenre(e.target.value)}
+                  className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white outline-none [color-scheme:dark]"
+                >
+                  <option value="all">All genres</option>
+                  {allGenres.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              )}
+            </>
           )}
         </div>
       )}
