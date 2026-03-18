@@ -8,7 +8,7 @@ import {
   BookOpen, BrainCircuit, Check, Layers, Loader2, Pencil, Plus,
   RefreshCw, Tag, Trash2, X,
 } from "lucide-react";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 function renderLatex(text: string): string {
   return text.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (_, block, inline) => {
@@ -53,6 +53,21 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
     startTransition(() => { onRate(rating); setFlipped(false); });
   }
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === " " || e.key === "Enter") { e.preventDefault(); setFlipped((f) => !f); }
+      if (flipped && !isPending) {
+        if (e.key === "1") handleRate(0);
+        else if (e.key === "2") handleRate(1);
+        else if (e.key === "3") handleRate(2);
+        else if (e.key === "4") handleRate(3);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flipped, isPending]);
+
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-xl mx-auto">
       <div className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_13%)] rounded-lg p-8 cursor-pointer select-none min-h-[200px] flex items-center justify-center"
@@ -62,7 +77,7 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
           <div className="text-lg text-white leading-relaxed">
             <MathContent text={flipped ? card.back : card.front} />
           </div>
-          {!flipped && <p className="mt-4 text-xs text-[hsl(0_0%_68%)]">Click to reveal</p>}
+          {!flipped && <p className="mt-4 text-xs text-[hsl(0_0%_68%)]">Space to reveal · 1–4 to rate</p>}
         </div>
       </div>
       {flipped ? (
@@ -70,7 +85,7 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
           {RATING_BUTTONS.map(({ rating, label, color }) => (
             <button key={rating} onClick={() => handleRate(rating)} disabled={isPending}
               className={`py-3 rounded-lg border text-sm font-medium transition-colors ${color} disabled:opacity-50`}>
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : label}
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `${rating + 1} ${label}`}
             </button>
           ))}
         </div>
