@@ -66,7 +66,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
       <Sidebar onCmdK={() => setCmdKOpen(true)} />
       <div className="flex-1 flex flex-col min-w-0">
         <MobileHeader onCmdK={() => setCmdKOpen(true)} />
-        <main ref={mainRef} className="flex-1 overflow-y-auto pb-16 lg:pb-0">
+        <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
           {children}
         </main>
       </div>

@@ -20,9 +20,9 @@ const CATEGORIES = ["Job", "Lecture", "Other"] as const;
 type Category = typeof CATEGORIES[number];
 
 const CATEGORY_STYLES: Record<string, string> = {
-  Job: "bg-sky-900/40 text-sky-400 border-sky-800/50",
-  Lecture: "bg-amber-900/40 text-amber-400 border-amber-800/50",
-  Other: "bg-zinc-800/40 text-zinc-400 border-zinc-700/50",
+  Job: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
+  Lecture: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
+  Other: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
 };
 
 function getDaysLeft(deadline: string) {
@@ -108,10 +108,10 @@ function SortableRow({
       {/* Done checkbox */}
       <button
         onClick={onMarkDone}
-        className="mt-0.5 shrink-0 p-0.5"
+        className="shrink-0 p-2.5 -m-2 touch-manipulation"
         aria-label={item.done ? "Mark undone" : "Mark done"}
       >
-        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.done ? "bg-emerald-600 border-emerald-500 text-white" : "border-[hsl(0_0%_35%)] hover:border-emerald-500 text-transparent"}`}>
+        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.done ? "bg-amber-600 border-amber-500 text-white" : "border-[hsl(0_0%_35%)] hover:border-amber-500 text-transparent"}`}>
           {item.done && <Check className="w-2.5 h-2.5" />}
         </span>
       </button>
@@ -288,17 +288,17 @@ export function DeadlineTable() {
         </div>
       ) : (
         <button onClick={() => setShowAdd(true)}
-          className="mb-4 flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-3 w-full transition-all">
+          className="mb-2 flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-2.5 w-full transition-all">
           <Plus className="w-4 h-4" /> Add Deadline
         </button>
       )}
 
       {items.length === 0 ? (
-        <div className="text-center py-20 text-[hsl(0_0%_72%)]"><p className="text-sm">No deadlines yet. Add one above or use Brain Dump.</p></div>
+        <div className="text-center py-8 text-[hsl(0_0%_72%)]"><p className="text-sm">No deadlines yet. Add one above or use Brain Dump.</p></div>
       ) : (
         <>
           {items.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-xs text-[hsl(0_0%_64%)]">Category</span>
               <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value as Category | "all")}
                 className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]">

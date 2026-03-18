@@ -299,9 +299,9 @@ export function LetterboxdImport() {
               {parsed.slice(0, 25).map((p, i) => (
                 <div key={i} className="text-xs text-[hsl(0_0%_70%)] py-0.5 truncate flex gap-2">
                   <span className="truncate">{p.title}{p.year ? ` (${p.year})` : ""}</span>
-                  {p.rating != null && <span className="text-amber-400 shrink-0">★ {p.rating}/10</span>}
-                  {p.review?.trim() && <span className="text-emerald-400 shrink-0">review</span>}
-                  {p.isWatchlist && <span className="text-sky-400 shrink-0">to watch</span>}
+                  {p.rating != null && <span className="text-[hsl(263_70%_75%)] shrink-0">★ {p.rating}/10</span>}
+                  {p.review?.trim() && <span className="text-[hsl(0_0%_55%)] shrink-0">review</span>}
+                  {p.isWatchlist && <span className="text-[hsl(0_0%_55%)] shrink-0">to watch</span>}
                 </div>
               ))}
               {parsed.length > 25 && (

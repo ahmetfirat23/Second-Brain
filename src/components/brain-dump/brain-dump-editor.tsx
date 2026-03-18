@@ -7,7 +7,7 @@ import { useQuery, useMutation } from "convex/react";
 import { format } from "date-fns";
 import {
   ArrowRight, CheckCheck, ChevronDown, ChevronRight, Clock,
-  GitMerge, Loader2, Pencil, RotateCcw, Send, Sparkles, Trash2, X
+  GitMerge, Loader2, MoreVertical, Pencil, RotateCcw, Send, Sparkles, Trash2, X
 } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -125,9 +125,9 @@ export function BrainDumpEditor() {
   const doneDumps = dumps.filter((d) => d.tidiedAt);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3 sm:gap-6">
       {/* Write area */}
-      <div className="bg-[hsl(0_0%_13%)] border border-[hsl(0_0%_22%)] rounded-xl overflow-hidden">
+      <div className="bg-[hsl(0_0%_13%)] border border-[hsl(0_0%_22%)] rounded-lg overflow-hidden">
         <input
           data-testid="brain-dump-title"
           value={title}
@@ -195,7 +195,7 @@ export function BrainDumpEditor() {
 
       {/* Tidy preview */}
       {preview && (
-        <div className="border border-[hsl(263_90%_60%/0.3)] rounded-xl overflow-hidden">
+        <div className="border border-[hsl(263_90%_60%/0.3)] rounded-lg overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-[hsl(263_90%_60%/0.08)] border-b border-[hsl(263_90%_60%/0.2)]">
             <span className="text-sm font-medium text-[hsl(263_70%_75%)] flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" /> Tidy result
@@ -229,7 +229,7 @@ export function BrainDumpEditor() {
 
       {/* Pending group banner */}
       {pendingCount > 0 && (
-        <div className="flex items-center justify-between bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_24%)] rounded-xl px-4 py-3">
+        <div className="flex items-center justify-between bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_24%)] rounded-lg px-4 py-3">
           <div className="flex items-center gap-2 text-sm text-[hsl(0_0%_68%)]">
             <Clock className="w-4 h-4" />
             <span><span className="font-semibold text-white">{pendingCount}</span> {pendingCount === 1 ? "dump" : "dumps"} not yet grouped</span>
@@ -364,6 +364,7 @@ function DumpRow({
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(title ?? "");
   const [editContent, setEditContent] = useState(content);
+  const [moreOpen, setMoreOpen] = useState(false);
   const date = format(new Date(createdAt), "MMM d, HH:mm");
   const displayTitle = title ?? content.slice(0, 50) + (content.length > 50 ? "…" : "");
 
@@ -381,7 +382,7 @@ function DumpRow({
   }
 
   return (
-    <div className={`group rounded-lg border transition-colors ${done ? "border-transparent hover:border-[hsl(0_0%_10%)]" : "bg-[hsl(0_0%_10%)] border-[hsl(0_0%_22%)]"}`}>
+    <div className={`relative group rounded-lg border transition-colors ${done ? "border-transparent hover:border-[hsl(0_0%_10%)]" : "bg-[hsl(0_0%_10%)] border-[hsl(0_0%_22%)]"}`}>
       <div className="flex items-center gap-3 px-4 py-2.5">
         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${done ? "bg-emerald-700" : "bg-amber-500"}`} />
         {!editing ? (
@@ -390,7 +391,8 @@ function DumpRow({
               <span className={`text-xs truncate block ${done ? "text-[hsl(0_0%_64%)]" : "text-[hsl(0_0%_72%)]"}`}>{displayTitle}</span>
             </button>
             <span className="text-[10px] text-[hsl(0_0%_64%)] shrink-0">{date}</span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            {/* Desktop: hover action strip */}
+            <div className="hidden lg:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
               {!done && (
                 <>
                   <button onClick={onTidy} title="Clean up with AI"
@@ -426,6 +428,55 @@ function DumpRow({
                 className="p-1 rounded hover:bg-red-900/30 text-[hsl(0_0%_68%)] hover:text-red-400 transition-colors">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
+            </div>
+            {/* Mobile: ⋮ menu */}
+            <div className="lg:hidden shrink-0" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setMoreOpen((o) => !o)}
+                className="p-2 rounded text-[hsl(0_0%_55%)] active:bg-[hsl(0_0%_20%)] touch-manipulation"
+                aria-label="Actions"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              {moreOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-[hsl(0_0%_28%)] bg-[hsl(0_0%_13%)] py-1 shadow-xl">
+                    {!done && (
+                      <>
+                        <button onClick={() => { onTidy(); setMoreOpen(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[hsl(0_0%_85%)] hover:bg-[hsl(0_0%_20%)]">
+                          <Sparkles className="w-3.5 h-3.5 text-[hsl(263_70%_70%)]" /> Tidy
+                        </button>
+                        <button onClick={() => { onToggleNoMerge(); setMoreOpen(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[hsl(0_0%_85%)] hover:bg-[hsl(0_0%_20%)]">
+                          {noMerge ? "Allow group" : "Mark standalone"}
+                        </button>
+                        {!noMerge && (
+                          <button onClick={() => { onGroup(); setMoreOpen(false); }} disabled={isGrouping}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[hsl(0_0%_85%)] hover:bg-[hsl(0_0%_20%)] disabled:opacity-40">
+                            <ArrowRight className="w-3.5 h-3.5" /> Group
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {done && onUncheck && (
+                      <button onClick={() => { onUncheck(); setMoreOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[hsl(0_0%_85%)] hover:bg-[hsl(0_0%_20%)]">
+                        <RotateCcw className="w-3.5 h-3.5" /> Move to Saved
+                      </button>
+                    )}
+                    <button onClick={() => { setMoreOpen(false); setEditing(true); setEditTitle(title ?? ""); setEditContent(content); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[hsl(0_0%_85%)] hover:bg-[hsl(0_0%_20%)]">
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </button>
+                    <button onClick={() => { setMoreOpen(false); onRemove(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-red-900/30">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </>
         ) : (

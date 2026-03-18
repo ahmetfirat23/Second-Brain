@@ -246,7 +246,7 @@ export function MediaGrid() {
   return (
     <div>
       {showForm ? (
-        <div className="mb-6 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3">
+        <div className="mb-3 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3">
           <h3 className="text-sm font-medium text-white">Add to Watch List</h3>
 
           {/* Search input */}
@@ -327,7 +327,7 @@ export function MediaGrid() {
           </div>
         </div>
       ) : (
-        <div className="mb-6 flex gap-2 flex-wrap items-center">
+        <div className="mb-3 flex gap-2 flex-wrap items-center">
           <button onClick={() => setShowForm(true)}
             className="flex items-center gap-2 text-sm text-[hsl(0_0%_68%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-3 transition-all">
             <Plus className="w-4 h-4" /> Add to Watch List
@@ -347,7 +347,7 @@ export function MediaGrid() {
       )}
 
       {items.length === 0 ? (
-        <div className="text-center py-20 text-[hsl(0_0%_68%)]">
+        <div className="text-center py-8 text-[hsl(0_0%_68%)]">
           <p className="text-sm">No titles yet. Search above or use Brain Dump.</p>
         </div>
       ) : (

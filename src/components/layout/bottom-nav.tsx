@@ -72,7 +72,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[55] bg-[hsl(0_0%_13%)] border-t border-[hsl(0_0%_22%)] safe-area-pb">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[55] bg-[hsl(0_0%_13%)] border-t border-[hsl(0_0%_22%)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex items-center justify-around px-2 py-2">
         {PRIMARY_NAV.map((item) => {
           const badge =

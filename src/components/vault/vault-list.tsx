@@ -15,10 +15,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const URGENCY_COLORS = ["", "bg-zinc-700 text-zinc-300", "bg-sky-900/40 text-sky-400", "bg-amber-900/40 text-amber-400", "bg-orange-900/40 text-orange-400", "bg-red-900/40 text-red-400"];
+const URGENCY_COLORS = ["", "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_55%)]", "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_60%)]", "bg-amber-900/40 text-amber-400", "bg-orange-900/40 text-orange-400", "bg-red-900/40 text-red-400"];
 
 function UrgencyDot({ urgency }: { urgency: number }) {
-  const colors = ["", "bg-zinc-500", "bg-sky-400", "bg-amber-400", "bg-orange-400", "bg-red-400"];
+  const colors = ["", "bg-zinc-600", "bg-zinc-500", "bg-amber-400", "bg-orange-400", "bg-red-400"];
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => (
@@ -70,7 +70,7 @@ function VaultRow({ item, dragHandleProps }: { item: VaultItem; dragHandleProps?
   const domain = (() => { try { return new URL(item.url).hostname; } catch { return item.url; } })();
 
   return (
-    <div className="group relative bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_22%)] rounded-xl hover:border-[hsl(0_0%_28%)] transition-all select-none">
+    <div className="group relative bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_22%)] rounded-lg hover:border-[hsl(0_0%_28%)] transition-all select-none">
       {editing ? (
         <div className="p-4 space-y-2">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-1.5 text-sm text-white outline-none" />
@@ -186,11 +186,11 @@ export function VaultList() {
         {!showAdd && !showBulk && (
           <>
             <button onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-3 flex-1 transition-all">
+              className="flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-lg px-4 py-3 flex-1 transition-all">
               <Plus className="w-4 h-4" /> Add Link
             </button>
             <button onClick={() => setShowBulk(true)}
-              className="flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-3 flex-1 transition-all">
+              className="flex items-center gap-2 text-sm text-[hsl(0_0%_75%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-lg px-4 py-3 flex-1 transition-all">
               <ClipboardList className="w-4 h-4" /> Bulk Paste
             </button>
           </>
@@ -198,7 +198,7 @@ export function VaultList() {
       </div>
 
       {showAdd && (
-        <div className="mb-4 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3">
+        <div className="mb-4 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-medium text-white">Add Link</h3>
           <input autoFocus value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Title" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_68%)] outline-none" />
           <input value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="https://…" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_68%)] outline-none" />
@@ -218,7 +218,7 @@ export function VaultList() {
       )}
 
       {showBulk && (
-        <div className="mb-4 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3">
+        <div className="mb-4 bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-medium text-white">Bulk Paste URLs</h3>
           <p className="text-xs text-[hsl(0_0%_75%)]">Paste one URL per line. Title is extracted automatically.</p>
           <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder={"https://example.com\nhttps://another.site\n…"}

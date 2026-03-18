@@ -107,9 +107,9 @@ export default function DailyTodosPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-8">
+    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-2 sm:py-8 pb-8">
       {/* Header */}
-      <div className="mb-4 sm:mb-6">
+      <div className="mb-2 sm:mb-6">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-teal-900/30 flex items-center justify-center shrink-0">
             <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 text-teal-400" />
@@ -138,7 +138,7 @@ export default function DailyTodosPage() {
         )}
       </div>
 
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-2 sm:space-y-4">
         {/* Add to today */}
         <div className="flex flex-row gap-2">
           <input
@@ -171,7 +171,7 @@ export default function DailyTodosPage() {
 
         {/* Daily card */}
         {!hasAnyDaily ? (
-          <div className="rounded-xl border border-dashed border-[hsl(0_0%_28%)] py-12 sm:py-16 text-center">
+          <div className="rounded-xl border border-dashed border-[hsl(0_0%_28%)] py-5 sm:py-16 text-center">
             <p className="text-sm text-[hsl(0_0%_68%)] px-4">No items for today. Add something above or pick from the pool below.</p>
           </div>
         ) : (
@@ -213,7 +213,7 @@ export default function DailyTodosPage() {
         )}
 
         {/* Pool section */}
-        <div className="pt-4 sm:pt-6">
+        <div className="pt-2 sm:pt-6">
           <button
             onClick={() => setPoolOpen((v) => !v)}
             className="w-full flex items-center gap-2 sm:gap-3 text-left mb-3 group"
@@ -234,7 +234,7 @@ export default function DailyTodosPage() {
           </button>
 
           {poolOpen && (
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               {/* Add pool task */}
               <div className="flex flex-row gap-2">
                 <input
@@ -266,7 +266,7 @@ export default function DailyTodosPage() {
               </div>
 
               {poolItems.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[hsl(0_0%_28%)] py-10 text-center">
+                <div className="rounded-xl border border-dashed border-[hsl(0_0%_28%)] py-5 text-center">
                   <p className="text-sm text-[hsl(0_0%_68%)] px-4">Pool is empty. Add tasks to plan ahead.</p>
                 </div>
               ) : (

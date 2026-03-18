@@ -55,7 +55,7 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-xl mx-auto">
-      <div className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_13%)] rounded-2xl p-8 cursor-pointer select-none min-h-[200px] flex items-center justify-center"
+      <div className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_13%)] rounded-lg p-8 cursor-pointer select-none min-h-[200px] flex items-center justify-center"
         onClick={() => setFlipped((f) => !f)}>
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-widest text-[hsl(0_0%_68%)] mb-4">{flipped ? "Answer" : "Question"}</p>
@@ -69,7 +69,7 @@ function ReviewCard({ card, onRate }: { card: Card; onRate: (rating: 0 | 1 | 2 |
         <div className="grid grid-cols-4 gap-2 w-full">
           {RATING_BUTTONS.map(({ rating, label, color }) => (
             <button key={rating} onClick={() => handleRate(rating)} disabled={isPending}
-              className={`py-3 rounded-xl border text-sm font-medium transition-colors ${color} disabled:opacity-50`}>
+              className={`py-3 rounded-lg border text-sm font-medium transition-colors ${color} disabled:opacity-50`}>
               {isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : label}
             </button>
           ))}
@@ -97,7 +97,7 @@ function CardEditor({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-xl p-4 space-y-3 mb-6">
+    <div className="bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.3)] rounded-lg p-4 space-y-3 mb-6">
       <h3 className="text-sm font-medium text-white">New Card</h3>
       <textarea value={front} onChange={(e) => setFront(e.target.value)} rows={2} placeholder="Front — question or concept. Supports $LaTeX$" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_68%)] outline-none resize-none font-mono" />
       <textarea value={back} onChange={(e) => setBack(e.target.value)} rows={2} placeholder="Back — answer or definition. Supports $$LaTeX$$" className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_68%)] outline-none resize-none font-mono" />
@@ -253,7 +253,7 @@ export function FlashcardDeck() {
 
       {/* Topics management panel */}
       {showTopicsPanel && (
-        <div className="mb-6 bg-[hsl(0_0%_9%)] border border-[hsl(263_90%_60%/0.2)] rounded-xl p-4 space-y-4">
+        <div className="mb-6 bg-[hsl(0_0%_9%)] border border-[hsl(263_90%_60%/0.2)] rounded-lg p-4 space-y-4">
           <p className="text-xs font-medium text-[hsl(0_0%_80%)] uppercase tracking-wider">Topic Management</p>
 
           {catState.phase === "idle" && (
@@ -476,7 +476,7 @@ function CardRow({ card, onRemove }: { card: Card; onRemove: () => void }) {
   }
 
   return (
-    <div className={`bg-[hsl(0_0%_10%)] border rounded-xl p-4 hover:border-[hsl(0_0%_28%)] transition-all ${isDue ? "border-[hsl(263_60%_40%/0.4)]" : "border-[hsl(0_0%_22%)]"}`}>
+    <div className={`bg-[hsl(0_0%_10%)] border rounded-lg p-4 hover:border-[hsl(0_0%_28%)] transition-all ${isDue ? "border-[hsl(263_60%_40%/0.4)]" : "border-[hsl(0_0%_22%)]"}`}>
       {editing ? (
         <div className="space-y-2">
           <textarea value={front} onChange={(e) => setFront(e.target.value)} rows={2} className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(263_90%_60%/0.4)] rounded-lg px-3 py-1.5 text-sm text-white outline-none resize-none font-mono" />

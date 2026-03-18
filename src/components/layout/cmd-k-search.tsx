@@ -17,13 +17,13 @@ const TYPE_ICONS = {
 } as const;
 
 const TYPE_COLORS = {
-  "Brain Dump": "text-violet-400",
-  "Daily Todos": "text-teal-400",
-  "Watch List": "text-sky-400",
-  Tracker: "text-amber-400",
-  Vault: "text-emerald-400",
-  "Knowledge Base": "text-pink-400",
-  "API Usage": "text-emerald-400",
+  "Brain Dump": "text-[hsl(0_0%_55%)]",
+  "Daily Todos": "text-[hsl(0_0%_55%)]",
+  "Watch List": "text-[hsl(0_0%_55%)]",
+  Tracker: "text-[hsl(0_0%_55%)]",
+  Vault: "text-[hsl(0_0%_55%)]",
+  "Knowledge Base": "text-[hsl(0_0%_55%)]",
+  "API Usage": "text-[hsl(0_0%_55%)]",
 } as const;
 
 type SearchResult = { id: string; title: string; subtitle: string; type: string; href: string };

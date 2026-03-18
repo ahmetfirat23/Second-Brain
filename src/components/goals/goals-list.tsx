@@ -41,9 +41,9 @@ const SIZE_COLORS = {
   long: "bg-red-900/40 text-red-400 border-red-800/50",
 };
 const STATUS_STYLES = {
-  not_started: "bg-zinc-800 text-zinc-400 border-zinc-700",
-  in_progress: "bg-sky-900/40 text-sky-400 border-sky-800/50",
-  done: "bg-emerald-900/40 text-emerald-400 border-emerald-800/50",
+  not_started: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_55%)] border-[hsl(0_0%_22%)]",
+  in_progress: "bg-[hsl(263_90%_65%/0.15)] text-[hsl(263_70%_75%)] border-[hsl(263_90%_65%/0.3)]",
+  done: "bg-[hsl(0_0%_13%)] text-[hsl(0_0%_50%)] border-[hsl(0_0%_20%)]",
 };
 const STATUS_LABELS = { not_started: "Not started", in_progress: "In progress", done: "Done" };
 const STATUS_NEXT: Record<Goal["status"], Goal["status"]> = {
@@ -343,43 +343,49 @@ export function GoalsList() {
     <div>
       {/* Filters */}
       {activeGoalsRaw.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="text-xs text-[hsl(0_0%_64%)]">Size</span>
-          <select
-            value={filterSize}
-            onChange={(e) => setFilterSize(e.target.value as typeof filterSize)}
-            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
-          >
-            {FILTER_SIZE_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o === "all" ? "All" : SIZE_LABELS[o as Goal["size"]]}</option>
-            ))}
-          </select>
-          <span className="text-xs text-[hsl(0_0%_64%)]">Importance</span>
-          <select
-            value={filterImportance}
-            onChange={(e) => setFilterImportance(e.target.value === "all" ? "all" : Number(e.target.value) as typeof filterImportance)}
-            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
-          >
-            {FILTER_IMPORTANCE_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o === "all" ? "All" : o}</option>
-            ))}
-          </select>
-          <span className="text-xs text-[hsl(0_0%_64%)]">Status</span>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-            className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
-          >
-            {FILTER_STATUS_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o === "all" ? "All" : STATUS_LABELS[o as Goal["status"]]}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-[hsl(0_0%_64%)]">Size</span>
+            <select
+              value={filterSize}
+              onChange={(e) => setFilterSize(e.target.value as typeof filterSize)}
+              className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
+            >
+              {FILTER_SIZE_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o === "all" ? "All" : SIZE_LABELS[o as Goal["size"]]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-[hsl(0_0%_64%)]">Importance</span>
+            <select
+              value={filterImportance}
+              onChange={(e) => setFilterImportance(e.target.value === "all" ? "all" : Number(e.target.value) as typeof filterImportance)}
+              className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
+            >
+              {FILTER_IMPORTANCE_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o === "all" ? "All" : o}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-[hsl(0_0%_64%)]">Status</span>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
+              className="bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_28%)] rounded-lg px-2 py-1 text-xs text-white outline-none [color-scheme:dark]"
+            >
+              {FILTER_STATUS_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o === "all" ? "All" : STATUS_LABELS[o as Goal["status"]]}</option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
       {/* Stats bar */}
       {activeGoals.length > 0 && (
-        <div className="flex items-center gap-4 mb-5 text-xs text-[hsl(0_0%_68%)]">
+        <div className="flex items-center gap-4 mb-2 text-xs text-[hsl(0_0%_68%)]">
           <span>{activeGoals.filter((g) => g.status === "in_progress").length} in progress</span>
           <span>{activeGoals.filter((g) => g.status === "not_started").length} not started</span>
           {overdueCount > 0 && (
@@ -392,7 +398,7 @@ export function GoalsList() {
 
       {!showAdd ? (
         <button onClick={() => setShowAdd(true)}
-          className="mb-4 flex items-center gap-2 text-sm text-[hsl(0_0%_68%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-3 w-full transition-all">
+          className="mb-2 flex items-center gap-2 text-sm text-[hsl(0_0%_68%)] hover:text-white border border-dashed border-[hsl(0_0%_28%)] hover:border-[hsl(0_0%_30%)] rounded-xl px-4 py-2.5 w-full transition-all">
           <Plus className="w-4 h-4" /> Add Goal
         </button>
       ) : (
@@ -400,7 +406,7 @@ export function GoalsList() {
       )}
 
       {activeGoals.length === 0 && !showAdd ? (
-        <div className="text-center py-20 text-[hsl(0_0%_72%)]">
+        <div className="text-center py-8 text-[hsl(0_0%_72%)]">
           <p className="text-sm">No goals yet. Add something you want to do — big or small.</p>
         </div>
       ) : (
@@ -415,7 +421,7 @@ export function GoalsList() {
 
       {/* Done section */}
       {doneGoals.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-4">
           <button
             onClick={() => setShowDone((v) => !v)}
             className="flex items-center gap-2 text-xs font-medium text-[hsl(0_0%_72%)] uppercase tracking-wider hover:text-[hsl(0_0%_72%)] transition-colors mb-3"

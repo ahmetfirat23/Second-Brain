@@ -31,7 +31,7 @@ function StarDisplay({ value, size = "sm" }: { value: number; size?: "sm" | "md"
           <Star className={`${px} text-[hsl(0_0%_28%)]`} />
           {type !== "empty" && (
             <span className="absolute inset-0 overflow-hidden" style={{ width: type === "half" ? "50%" : "100%" }}>
-              <Star className={`${px} fill-yellow-400 text-yellow-400`} />
+              <Star className={`${px} fill-[hsl(263_70%_70%)] text-[hsl(263_70%_70%)]`} />
             </span>
           )}
         </span>
@@ -67,8 +67,8 @@ function StarPicker({
           <Star
             className={`w-5 h-5 transition-colors ${
               score <= active
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-[hsl(0_0%_30%)] hover:text-yellow-400/40"
+                ? "fill-[hsl(263_70%_70%)] text-[hsl(263_70%_70%)]"
+                : "text-[hsl(0_0%_30%)] hover:text-[hsl(263_70%_70%)]/40"
             }`}
           />
         </button>
@@ -90,12 +90,12 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Sitcom: "bg-sky-900/40 text-sky-300 border-sky-700/60",
-  Anime: "bg-pink-900/40 text-pink-300 border-pink-700/60",
-  Film: "bg-amber-900/40 text-amber-300 border-amber-700/60",
-  Documentary: "bg-emerald-900/40 text-emerald-300 border-emerald-700/60",
-  Series: "bg-violet-900/40 text-violet-300 border-violet-700/60",
-  Other: "bg-zinc-800/40 text-zinc-300 border-zinc-600/60",
+  Sitcom: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
+  Anime: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
+  Film: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
+  Documentary: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
+  Series: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
+  Other: "bg-[hsl(0_0%_15%)] text-[hsl(0_0%_65%)] border-[hsl(0_0%_22%)]",
 };
 
 type MediaItem = {
@@ -279,7 +279,7 @@ function ItemModal({
       onClick={onClose}
     >
       <div
-        className="bg-[hsl(0_0%_11%)] border border-[hsl(0_0%_22%)] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="bg-[hsl(0_0%_11%)] border border-[hsl(0_0%_22%)] rounded-lg w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
 
@@ -616,7 +616,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
       <div
         ref={setNodeRef} style={style}
         onClick={() => openModal("detail")}
-        className={`group relative aspect-[2/3] rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 select-none ${
+        className={`group relative aspect-[2/3] rounded-lg overflow-hidden border cursor-pointer transition-all duration-200 select-none ${
           isDragging
             ? "border-[hsl(0_0%_22%)] shadow-2xl z-50"
             : "border-[hsl(0_0%_22%)] hover:border-[hsl(0_0%_38%)] hover:shadow-lg"

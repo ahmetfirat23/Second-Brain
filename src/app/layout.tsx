@@ -1,11 +1,15 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { ClientShell } from "./client-shell";
 import { ConvexAuthGuard } from "@/components/auth/convex-auth-guard";
 import { ConvexClientProvider } from "@/providers/convex-provider";
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "Mergen, the Second Brain",
