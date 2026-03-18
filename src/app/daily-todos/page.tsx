@@ -366,7 +366,7 @@ function DailyRow({
   }
 
   return (
-    <div className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 sm:py-3 border-b border-[hsl(0_0%_10%)] last:border-0 group hover:bg-[hsl(0_0%_13%)] active:bg-[hsl(0_0%_13%)] transition-colors min-h-[52px] select-none ${done ? "opacity-60" : ""}`}>
+    <div className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1 sm:py-3 border-b border-[hsl(0_0%_10%)] last:border-0 group hover:bg-[hsl(0_0%_13%)] active:bg-[hsl(0_0%_13%)] transition-colors min-h-[40px] select-none ${done ? "opacity-60" : ""}`}>
       {dragHandleProps && (
         <button
           {...dragHandleProps}
@@ -492,7 +492,7 @@ function PoolRow({
   }
 
   return (
-    <div className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 sm:py-3 border-b border-[hsl(0_0%_10%)] last:border-0 group hover:bg-[hsl(0_0%_13%)] active:bg-[hsl(0_0%_13%)] transition-colors min-h-[52px] select-none ${done ? "opacity-60" : ""}`}>
+    <div className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1 sm:py-3 border-b border-[hsl(0_0%_10%)] last:border-0 group hover:bg-[hsl(0_0%_13%)] active:bg-[hsl(0_0%_13%)] transition-colors min-h-[40px] select-none ${done ? "opacity-60" : ""}`}>
       {dragHandleProps && (
         <button
           {...dragHandleProps}
