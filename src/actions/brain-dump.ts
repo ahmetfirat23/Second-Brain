@@ -17,7 +17,7 @@ async function getConvex() {
 
 async function logUsage(convex: ConvexHttpClient, source: string, provider: string, inputTokens: number, outputTokens: number, model?: string) {
   try {
-    await convex.mutation(api.apiUsage.log, {
+    await convex.mutation(api.apiUsage.logFromClient, {
       source,
       provider,
       inputTokens,

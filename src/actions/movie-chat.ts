@@ -21,7 +21,7 @@ async function logUsage(
   model?: string
 ) {
   try {
-    await convex.mutation(api.apiUsage.log, {
+    await convex.mutation(api.apiUsage.logFromClient, {
       source,
       provider,
       inputTokens,
