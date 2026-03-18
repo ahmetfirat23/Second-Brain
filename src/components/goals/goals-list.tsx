@@ -85,7 +85,7 @@ function GoalCard({ goal }: { goal: Goal }) {
   const [editImportance, setEditImportance] = useState<Goal["importance"]>(goal.importance);
   const [editSize, setEditSize] = useState<Goal["size"]>(goal.size);
   const [isPending, startTransition] = useTransition();
-  const [expanded, setExpanded] = useState(!!goal.description);
+  const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const { overdue, days } = overdueInfo(goal);
