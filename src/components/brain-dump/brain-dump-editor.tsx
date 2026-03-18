@@ -23,6 +23,7 @@ export function BrainDumpEditor() {
   const [isTidyingAll, startTidyAll] = useTransition();
   const [preview, setPreview] = useState<TidyPreview | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [search, setSearch] = useState("");
 
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
@@ -121,8 +122,11 @@ export function BrainDumpEditor() {
     });
   }
 
-  const activeDumps = dumps.filter((d) => !d.tidiedAt);
-  const doneDumps = dumps.filter((d) => d.tidiedAt);
+  const q = search.trim().toLowerCase();
+  const matchesDump = (d: { title?: string; content: string; tidiedContent?: string }) =>
+    !q || (d.title ?? "").toLowerCase().includes(q) || d.content.toLowerCase().includes(q) || (d.tidiedContent ?? "").toLowerCase().includes(q);
+  const activeDumps = dumps.filter((d) => !d.tidiedAt && matchesDump(d));
+  const doneDumps = dumps.filter((d) => d.tidiedAt && matchesDump(d));
 
   return (
     <div className="flex flex-col gap-3 sm:gap-6">
@@ -243,6 +247,16 @@ export function BrainDumpEditor() {
             {isTidyingAll ? "Running…" : "Group All"}
           </button>
         </div>
+      )}
+
+      {/* Search */}
+      {dumps.length > 3 && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search dumps…"
+          className="w-full bg-[hsl(0_0%_10%)] border border-[hsl(0_0%_22%)] rounded-lg px-3 py-2 text-sm text-white placeholder:text-[hsl(0_0%_52%)] outline-none"
+        />
       )}
 
       {/* Active dumps */}
